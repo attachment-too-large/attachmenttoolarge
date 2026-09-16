@@ -371,9 +371,9 @@
   /* 参数化引擎按漂移换气：低漂移是那条能无限循环的铺底，中段换成后摇，
      高漂移回到铺底但音量压低 —— "他越来越不像他" 听得出但不喧哗。 */
   function trackForDrift() {
-    if (S.drift < bands().mixed) return "lofi";
+    if (S.drift < bands().mixed) return "musicbox";
     if (S.drift < bands().yours) return "postrock";
-    return "lofi";
+    return "musicbox";
   }
   function applyMusic() {
     var want = trackForDrift();

@@ -56,6 +56,40 @@ body{
 .lamp .glow{position:absolute; left:-320px; top:40px; width:640px; height:520px;
   background:radial-gradient(circle at 50% 0%, rgba(255,215,154,.34), rgba(255,215,154,.06) 42%, transparent 70%);
   pointer-events:none; mix-blend-mode:screen;}
+/* ==========================================================================
+   锈湖调（Rusty Lake grade）
+   平涂 + 粗描边 + 退色的橄榄/赭石 + 重暗角 + 印刷颗粒。
+   不是滤镜堆出来的"复古"，是把颜色本身换掉：饱和度整体压低，
+   只留一盏暖灯作为画面里唯一的高光。
+   ========================================================================== */
+:root{
+  --rl-ink:#1b1410;        /* 描边用的近黑 */
+  --rl-line:rgba(27,20,16,.85);
+  --rl-olive:#3a3a2c;
+  --rl-paper:#d8cdb4;
+}
+.room{ filter: saturate(.62) sepia(.20) contrast(1.05) brightness(.97); }
+.room::after{                       /* 印刷颗粒（整间屋子一层） */
+  content:""; position:absolute; inset:0; pointer-events:none; z-index:6;
+  mix-blend-mode:multiply; opacity:.30;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/></filter><rect width='140' height='140' filter='url(%23n)' opacity='.5'/></svg>");
+}
+.room::before{                      /* 重暗角 */
+  content:""; position:absolute; inset:0; pointer-events:none; z-index:7;
+  background:radial-gradient(120% 88% at 46% 42%, transparent 38%, rgba(14,10,7,.55) 82%, rgba(9,6,4,.85) 100%);
+}
+/* 粗描边：桌上的东西、书架、钟、画框、CRT 都描一圈，像手绘 */
+.obj{ border:2px solid var(--rl-line); }
+.o-cal,.o-photo,.o-contract,.o-card,.o-cake,.o-drawing{ box-shadow:4px 5px 0 rgba(20,14,10,.55), 0 6px 12px rgba(0,0,0,.45); }
+.o-pick,.o-pills,.o-keys{ border-radius:2px; }
+.shelf{ border:3px solid var(--rl-line); box-shadow:6px 8px 0 rgba(20,14,10,.45), 0 22px 45px rgba(0,0,0,.6); }
+.shelf .row i{ filter:saturate(.45) brightness(.92) !important; }
+.clock,.frame-pic{ border:3px solid var(--rl-line); box-shadow:5px 6px 0 rgba(20,14,10,.45); }
+.crt{ border-color:#241d18; box-shadow:6px 8px 0 rgba(20,14,10,.5), 0 10px 24px rgba(0,0,0,.6); }
+/* 灯罩换成更旧的绿 */
+.lamp .shade{ background:linear-gradient(180deg,#2b3a24,#1a2416); }
+/* 桌面木纹更闷 */
+.desk{ background:linear-gradient(180deg,#4a3a2a,#332619 60%,#241a12); }
 /* ---------- 书架（书房总得有个书架）---------- */
 .shelf{position:absolute; right:3%; top:5%; width:32%; height:39%;
   background:linear-gradient(180deg,#3b2b1e,#20170f);
@@ -95,6 +129,9 @@ body{
   transform-origin:bottom center; transform:translate(-50%,-100%) rotate(15deg)}
 .clock u{position:absolute; left:50%; top:50%; width:2px; height:19px; background:#4a3a28;
   transform-origin:bottom center; transform:translate(-50%,-100%) rotate(198deg); display:block}
+/* 挂钟永远停在 19:59 —— 这个世界的常数。指针不动，是玩家第一眼会不安的地方。 */
+.clock::after{content:"19:59"; position:absolute; left:50%; top:64%; transform:translateX(-50%);
+  font-family:ui-monospace,monospace; font-size:9px; letter-spacing:.06em; color:#3a2f22; opacity:.85}
 
 /* ---------- 墙上的画框 ---------- */
 .frame-pic{position:absolute; right:41%; top:34%; width:106px; height:80px;

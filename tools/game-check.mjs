@@ -171,10 +171,10 @@ const SUITE = `(async () => {
 
   // ---- 漂移 → 音乐 ----
   G.pushDrift(30); await wait(120);
-  ok("中段漂移换成另一条曲子", G.state().track === "postrock", "track=" + G.state().track);
+  ok("中段漂移换成后摇", G.state().track === "postrock", "track=" + G.state().track);
   G.pushDrift(40); await wait(120);
   ok("高漂移时字迹换手", G.state().hand === "yours", G.state().hand);
-  ok("高漂移时音乐回到铺底", G.state().track === "lofi", "track=" + G.state().track);
+  ok("高漂移时音乐回到音乐盒", G.state().track === "musicbox", "track=" + G.state().track);
   const lastEntry = document.querySelector("#pages .entry:last-child");
   ok("账本最后一条已换字迹", lastEntry && lastEntry.className.indexOf("yours") >= 0, lastEntry ? lastEntry.className : "none");
 

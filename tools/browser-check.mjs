@@ -391,8 +391,15 @@ const SUITE = `(async () => {
     ok("旧版说唱页（已退役为跳转）", true, "legacy page");
   } else {
     ok("本页无唱片播放器（跳过）", true, "N/A on this page");
+  }
 
-    /* ---------- 设计审计：把已经犯过的错变成断言 ---------- */
+  /* ---------- 设计审计：把已经犯过的错变成断言 ---------- */
+  /* Runs on every page, not only the ones without a player. It used to sit inside
+     the else above, so the records page — which has the most text on the site —
+     skipped the contrast audit, the heading check, the fixed-control overlap check
+     and the cache-stamp check without saying so. A gate that silently skips a page
+     is worse than no gate, because the green run is a lie. */
+  {
     /* No regular expressions anywhere in here on purpose: this whole suite is a
        template literal in the host file, which swallows backslashes — a regex
        written with escaped parentheses silently becomes a different regex and
@@ -431,42 +438,127 @@ const SUITE = `(async () => {
     /* A panel can be light because of a background-image gradient rather than a
        background-color — which is exactly how a bone-white plate with white text
        on it slipped past the first version of this audit. So gradients count too:
-       every colour stop in the image is averaged and treated as the backdrop. */
-    function bgLum(el) {
-      let n = el, fromImage = -1;
+       every colour stop in the image is averaged and treated as the backdrop.
+       It now returns the paint itself, not just its luminance: which element owns
+       the winning background declaration, which property carried it, and the raw
+       colour string. "ratio=1.69" is a number, not a lead — the colour, its
+       property and the box that supplied it are what actually name the culprit. */
+    /* One background layer, with its alpha kept. A translucent wash is the case
+       that matters: rgba(182,224,74,0.14) over a near-black page is a dark plate,
+       but reading the colour and ignoring the alpha says "bright lime", and then
+       light text on it looks like a 1.18:1 failure that does not exist. Poster
+       layouts are built from exactly such washes, so this is the difference
+       between an audit and a coin toss. */
+    function paintOf(cs) {
+      const solid = colorsIn(cs.backgroundColor);
+      if (solid.length) {
+        const v = solid[0];
+        const a = v.length > 3 ? v[3] : 1;
+        if (a > 0) return { rgb: [v[0], v[1], v[2]], alpha: a, css: cs.backgroundColor, prop: "background-color" };
+      }
+      if (cs.backgroundImage && cs.backgroundImage !== "none") {
+        const stops = colorsIn(cs.backgroundImage);
+        if (stops.length) {
+          const rgb = [0, 1, 2].map(i => stops.reduce((s, x) => s + x[i], 0) / stops.length);
+          const a = stops.reduce((s, x) => s + (x.length > 3 ? x[3] : 1), 0) / stops.length;
+          if (a > 0) return { rgb: rgb, alpha: a, css: cs.backgroundImage.slice(0, 52), prop: "background-image" };
+        }
+      }
+      return null;
+    }
+    /* Collect the stack of layers from the element outward, stop at the first
+       opaque one, then composite them bottom-up. That is what the eye sees. */
+    function bgSource(el) {
+      const stack = [];                       // nearest layer first
+      let n = el;
       while (n && n !== document.documentElement) {
-        const cs = getComputedStyle(n);
-        const bg = cs.backgroundColor;
-        const solid = colorsIn(bg);
-        if (solid.length && !(solid[0].length > 3 && solid[0][3] === 0)) {
-          return lumOfTriplet(solid[0][0], solid[0][1], solid[0][2]);
-        }
-        if (cs.backgroundImage && cs.backgroundImage !== "none") {
-          const stops = colorsIn(cs.backgroundImage);
-          if (stops.length) {
-            const ls = stops.map(s => lumOfTriplet(s[0], s[1], s[2]));
-            return ls.reduce((a, b) => a + b, 0) / ls.length;   // nearest visible fill wins
-          }
-        }
+        const p = paintOf(getComputedStyle(n));
+        if (p) { p.el = n; stack.push(p); if (p.alpha >= 0.999) break; }
         n = n.parentElement;
       }
-      return 0;
+      if (!stack.length) return { lum: 0, css: "浏览器默认（一路走到 html 都没有底）", prop: "none", el: document.documentElement };
+      if (stack[stack.length - 1].alpha < 0.999) {
+        stack.push({ rgb: [8, 9, 10], alpha: 1, css: "假定页底 #08090a", prop: "fallback", el: document.documentElement });
+      }
+      let base = stack[stack.length - 1].rgb.slice();
+      for (let i = stack.length - 2; i >= 0; i--) {
+        const L = stack[i];
+        base = [0, 1, 2].map(k => L.rgb[k] * L.alpha + base[k] * (1 - L.alpha));
+      }
+      const top = stack[0];
+      const over = stack.length > 1 ? " 叠在 " + stack[stack.length - 1].css : "";
+      const eff = "rgb(" + base.map(v => Math.round(v)).join(", ") + ")";   // what the eye actually gets
+      return { lum: lumOfTriplet(base[0], base[1], base[2]), eff: eff,
+               css: top.css + (top.alpha < 0.999 ? "@" + top.alpha.toFixed(2) : "") + over,
+               prop: top.prop, el: top.el };
+    }
+    /* A readable name for the element that owns the backdrop: tag plus a few
+       classes is what a person needs to go and find the offending rule. */
+    function nameOf(n) {
+      if (!n || !n.tagName) return "?";
+      const raw = n.className;
+      const cls = typeof raw === "string" ? raw.split(" ").filter(Boolean).slice(0, 3) : [];
+      return n.tagName.toLowerCase() + cls.map(c => "." + c).join("");
+    }
+    /* WCAG AA for real: 4.5:1 for body text, 3:1 once it is large (>=24px, or
+       >=18.66px when bold). The flat 2.4 gate this used to carry is not a
+       standard and it is what let small chip text sit at 1.69 and still pass. */
+    function wcagNeed(cs) {
+      const size = parseFloat(cs.fontSize) || 16;
+      const weight = parseInt(cs.fontWeight, 10) || 400;
+      return (size >= 24 || (size >= 18.66 && weight >= 700)) ? 3 : 4.5;
     }
     const auditRoots = [...document.querySelectorAll("main h1, main h2, main h3, main p, main li, main a, main span, main button, main label")]
       .filter(el => el.offsetParent !== null && el.textContent.trim().length > 3
         && !el.closest(".hud-rail,.hud-timer,.hud-crumb,.music-pill,.bg-fx"));
+    const contrastAll = [];
     const lowContrast = [];
     for (const el of auditRoots) {
       const cs = getComputedStyle(el);
-      const fgRaw = cs.webkitTextFillColor && cs.webkitTextFillColor !== "rgb(0, 0, 0)" ? cs.webkitTextFillColor : cs.color;
+      const fillRaw = cs.webkitTextFillColor || "";
+      const colorRaw = cs.color;
+      const fillSet = !!fillRaw && fillRaw !== "rgb(0, 0, 0)" && fillRaw !== colorRaw;
+      const fgRaw = fillSet ? fillRaw : colorRaw;
+      const who = nameOf(el);
+      const snippet = el.textContent.trim().slice(0, 18);
+      const fgNote = "color " + colorRaw + (fillSet ? " · -webkit-text-fill-color " + fillRaw : "");
       const L1 = lumOf(fgRaw);
-      if (L1 < 0) { lowContrast.push("transparent fill: " + el.tagName + " " + el.textContent.trim().slice(0, 20)); continue; }
-      const L2 = bgLum(el);
-      const ratio = (Math.max(L1, L2) + 0.05) / (Math.min(L1, L2) + 0.05);
-      if (ratio < 2.4) lowContrast.push(el.tagName + " '" + el.textContent.trim().slice(0, 18) + "' ratio=" + ratio.toFixed(2));
+      if (L1 < 0) {
+        const rec = { ratio: 0, line: who + " '" + snippet + "' · " + fgNote +
+          " · 透明填充：没有任何颜色可读（审计规则 2）" };
+        contrastAll.push(rec);
+        lowContrast.push(rec);
+        continue;
+      }
+      const bg = bgSource(el);
+      const ratio = (Math.max(L1, bg.lum) + 0.05) / (Math.min(L1, bg.lum) + 0.05);
+      const need = wcagNeed(cs);
+      const rec = { ratio: ratio,
+        line: who + " '" + snippet + "' · fg " + fgRaw + " (" + fgNote + ")" +
+              " · bg " + bg.eff + " = " + bg.css + " 由 " + bg.prop + " 提供，来自祖先 " + nameOf(bg.el) +
+              " · " + ratio.toFixed(2) + ":1（需 " + need + "）" };
+      contrastAll.push(rec);
+      if (ratio < need) lowContrast.push(rec);
     }
+    contrastAll.sort((a, b) => a.ratio - b.ratio);
+    lowContrast.sort((a, b) => a.ratio - b.ratio);
+    const worst = contrastAll.length ? contrastAll[0].ratio.toFixed(2) + ":1" : "n/a";
     ok("审计: 文字对比度足够", lowContrast.length === 0,
-       lowContrast.length ? lowContrast.slice(0, 3).join(" | ") : auditRoots.length + " 处文字全部达标");
+       lowContrast.length
+         ? lowContrast.length + " / " + contrastAll.length + " 处不达 WCAG AA，最低 " + worst + "（明细见下）"
+         : contrastAll.length + " 处文字全部达到 WCAG AA，最低 " + worst);
+    /* Failures first, each on its own line, with the three things needed to fix
+       it: the painted foreground, the paint behind it, and the element that owns
+       that paint. This is the part that used to be missing. */
+    lowContrast.slice(0, 8).forEach((r, i) => {
+      ok("审计·对比度不达标 " + (i + 1), false, r.line);
+    });
+    if (lowContrast.length > 8) ok("审计·对比度不达标（其余）", false, "另有 " + (lowContrast.length - 8) + " 处未列出");
+    /* Always printed, pass or fail: the three tightest pairs on the page and the
+       box that owns each backdrop, so a green run still shows real colours. */
+    contrastAll.slice(0, 3).forEach((r, i) => {
+      ok("审计·最紧的 " + (i + 1) + " 处（始终打印实际颜色）", true, r.line);
+    });
 
     const invisibleHeads = [...document.querySelectorAll("main h1, main h2")].filter(h => {
       const r = h.getBoundingClientRect();

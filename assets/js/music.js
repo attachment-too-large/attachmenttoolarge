@@ -674,6 +674,36 @@
      片段首尾相接，每段和声与速度都不同，那不是一首曲子。
      Karplus-Strong 拨弦（噪声脉冲 + 延迟反馈）正是民谣吉他与五弦班卓的音色，
      配走步低音、口琴式长音与三度和声。G–C–G–D 循环，四小节一句。 */
+  /* ======================= 曲目：A Music Box for U-114 =======================
+     锈湖那一路的纯音乐：一只走了调的旧音乐盒，加一条缓慢失谐的长鸣，
+     偶尔一记钟摆似的轻响。没有鼓、没有低音线，只有时间在走。
+     音色全部用现成的：bell（铃/音乐盒）、stDrone（失谐长鸣）、stTick（滴答）。
+     D 小调，72 BPM，一小节一下，留大量空白 —— 空白才是这类音乐的恐怖来源。 */
+  var MB_BPM = 72, MB_BEAT = 60 / MB_BPM, MB_STEP = MB_BEAT / 2, MB_BAR = 8;
+  var MB_SCALE = [293.66, 311.13, 349.23, 392.00, 415.30, 466.16, 523.25, 587.33];   // D 小调带降二度
+  var MB_MELODY = [0, 3, 2, 5, 3, 1, 0, 2, 4, 2, 3, 0];                              // 十二音一句
+  var MB_DRONE = [73.42, 73.42, 87.31, 73.42];                                        // D2 / F2 缓慢交替
+
+  function scheduleMusicBoxStep(ctx, b, step, t) {
+    var bar = Math.floor(step / MB_BAR);
+    var local = step % MB_BAR;
+    var phrase = bar % 4;
+
+    /* 音乐盒：八分音，半拍一颗，偶尔漏一颗（旧玩具会卡） */
+    if (local % 2 === 0) {
+      var idx = (bar * 4 + Math.floor(local / 2)) % MB_MELODY.length;
+      if (!(phrase === 2 && local === 4)) {                 // 第三句故意漏一下
+        bell(ctx, b, MB_SCALE[MB_MELODY[idx]], t);
+      }
+    }
+    /* 走得调：每两小节把整句往上顶 20 音分，再落回来 —— 漏气的发条 */
+    if (local === 0) {
+      stDrone(ctx, b, MB_DRONE[bar % MB_DRONE.length], t, MB_STEP * MB_BAR);
+    }
+    /* 钟摆：每小节头一下，很轻 */
+    if (local === 0) stTick(ctx, b, t, 0.5);
+    if (bar % 8 === 7 && local === 6) swell(ctx, b, t);       // 八小节一次涌浪，接回开头
+  }
   function schedulePostStep(ctx, b, step, t) {
     var bar = Math.floor(step / POST_BAR) % POST_BARS;
     var local = step % POST_BAR;
@@ -978,6 +1008,7 @@
   function stepDur() {
     if (state.track === "rap") return RAP_STEP;
     if (state.track === "postrock") return POST_STEP;
+    if (state.track === "musicbox") return MB_STEP;
     if (state.track === "electro") return ELEC_STEP;
     return STEP;
   }
@@ -985,6 +1016,7 @@
   function scheduleStep(ctx, b, step, t) {
     if (state.track === "rap") scheduleRapStep(ctx, b, step, t);
     else if (state.track === "postrock") schedulePostStep(ctx, b, step, t);
+    else if (state.track === "musicbox") scheduleMusicBoxStep(ctx, b, step, t);
     else if (state.track === "electro") scheduleElectroStep(ctx, b, step, t);
     else scheduleLofiStep(ctx, b, step, t);
   }
@@ -1301,7 +1333,7 @@
   }
 
   function selectTrack(id) {
-    if (id !== "rap" && id !== "postrock" && id !== "electro") id = "lofi";
+    if (id !== "rap" && id !== "postrock" && id !== "electro" && id !== "musicbox") id = "lofi";
     if (id === state.track) return state.track;
     var wasOn = state.on;
     if (wasOn) stop();
@@ -1326,6 +1358,7 @@
       id: state.track,
       name: state.track === "rap"
         ? ((data && data.title) || "Attachment Too Large") + " (Rap)"
+        : state.track === "musicbox" ? "A Music Box for U-114"
         : state.track === "postrock" ? "The Long Send"
         : state.track === "electro" ? "Rejected (Club Edit)"
         : "Failed at 19:59",
@@ -1449,6 +1482,7 @@
     var steps = Math.ceil(seconds / dur);
     for (var i = 0; i < steps; i++) {
       if (which === "rap") scheduleRapStep(ctx, buses, i, i * dur);
+      else if (which === "musicbox") scheduleMusicBoxStep(ctx, buses, i, i * dur);
       else if (which === "postrock") schedulePostStep(ctx, buses, i, i * dur);
       else if (which === "electro") scheduleElectroStep(ctx, buses, i, i * dur);
       else scheduleLofiStep(ctx, buses, i % TOTAL_STEPS, i * dur);

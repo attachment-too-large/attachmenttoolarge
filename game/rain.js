@@ -83,9 +83,9 @@
 
   function drawNight() {
     var g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, "#1b2531");
-    g.addColorStop(0.5, "#151d27");
-    g.addColorStop(1, "#101720");
+    g.addColorStop(0, "#2b2e26");
+    g.addColorStop(0.5, "#232419");
+    g.addColorStop(1, "#1a1a12");
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
   }
@@ -113,9 +113,9 @@
       if (p.x < -m) p.x = W + m; else if (p.x > W + m) p.x = -m;
       if (p.y < -m) p.y = H + m; else if (p.y > H + m) p.y = -m;
       var rg = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r);
-      rg.addColorStop(0, "rgba(196,210,224," + p.a + ")");
-      rg.addColorStop(0.55, "rgba(186,202,218," + (p.a * 0.45) + ")");
-      rg.addColorStop(1, "rgba(180,196,214,0)");
+      rg.addColorStop(0, "rgba(206,200,178," + p.a + ")");
+      rg.addColorStop(0.55, "rgba(196,190,168," + (p.a * 0.45) + ")");
+      rg.addColorStop(1, "rgba(190,184,162,0)");
       ctx.fillStyle = rg;
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.r, 0, 6.283);
@@ -130,9 +130,9 @@
       f.y += f.v * dt;
       if (f.y - H * 0.5 > H) { f.y = -H * 0.5; f.x = rnd(0.05, 0.95) * W; f.w = rnd(12, 30); }
       var lg = ctx.createLinearGradient(f.x - f.w, 0, f.x + f.w, 0);
-      lg.addColorStop(0, "rgba(214,232,246,0)");
-      lg.addColorStop(0.5, "rgba(214,232,246," + f.a + ")");
-      lg.addColorStop(1, "rgba(214,232,246,0)");
+      lg.addColorStop(0, "rgba(216,210,186,0)");
+      lg.addColorStop(0.5, "rgba(216,210,186," + f.a + ")");
+      lg.addColorStop(1, "rgba(216,210,186,0)");
       ctx.fillStyle = lg;
       var hh = H * 1.4;
       ctx.fillRect(f.x - f.w, f.y - hh * 0.5, f.w * 2, hh);
@@ -142,9 +142,9 @@
   /* 贴在玻璃上的奶白薄雾 + 一层反光 + 噪点 */
   function drawGlass() {
     var v = ctx.createLinearGradient(0, 0, 0, H);
-    v.addColorStop(0, "rgba(226,236,244,0.070)");
-    v.addColorStop(0.45, "rgba(226,236,244,0.028)");
-    v.addColorStop(1, "rgba(226,236,244,0.050)");
+    v.addColorStop(0, "rgba(226,220,196,0.075)");
+    v.addColorStop(0.45, "rgba(226,220,196,0.032)");
+    v.addColorStop(1, "rgba(226,220,196,0.055)");
     ctx.fillStyle = v;
     ctx.fillRect(0, 0, W, H);
 
