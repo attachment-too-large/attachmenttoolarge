@@ -104,6 +104,56 @@
     });
   }
 
+  /* --------------------------------------------------------------------------
+     窗外的黑影。
+     它站在街灯的光里，所以它本身是"一块挡光的黑"，不是一坨涂料。
+     雾在它之后画，于是它总有一半被雾吃掉。它几乎不动；
+     你盯着它看（鼠标移到窗上）的时候它会消失 —— 那是它唯一"活着"的证据。
+     -------------------------------------------------------------------------- */
+  var figure = { x: 0.66, y: 0.80, alpha: 0, want: 0, next: 4, hold: 0, drifting: 0 };
+  /* ?figure=1 让它立刻站在那儿 —— 给截图和人工检查用（平时它是按自己节奏出现的） */
+  if (location.search.indexOf("figure=1") >= 0) { figure.want = 0.82; figure.alpha = 0; figure.hold = 9999; }
+
+  function drawFigure(dt) {
+    /* 状态机：出现 → 站几秒（轻微横移）→ 消失；然后再等一会儿 */
+    if (figure.hold > 0) {
+      figure.hold -= dt;
+      if (figure.hold <= 0) { figure.want = 0; figure.next = 12 + Math.random() * 16; }
+    } else {
+      figure.next -= dt;
+      if (figure.next <= 0) { figure.want = 0.62 + Math.random() * 0.22; figure.hold = 5 + Math.random() * 6; figure.x = 0.5 + Math.random() * 0.26; }
+    }
+    figure.alpha += (figure.want - figure.alpha) * Math.min(1, dt * 1.6);
+    figure.drifting += dt * 0.25;
+    if (figure.alpha < 0.01) return;
+
+    var cx = (figure.x + Math.sin(figure.drifting) * 0.012) * W;
+    var baseY = figure.y * H;                     // 脚在街上
+    var hgt = H * 0.34;                           // 高得不太对：比一个人高一截
+    var wid = hgt * 0.20;
+    var a = figure.alpha;
+
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.fillStyle = "#070605";
+    ctx.shadowColor = "rgba(0,0,0,.85)";
+    ctx.shadowBlur = Math.max(6, H * 0.03);
+    /* 身体：肩略斜，站得笔直 */
+    ctx.beginPath();
+    ctx.moveTo(cx - wid * 0.55, baseY);
+    ctx.lineTo(cx - wid * 0.62, baseY - hgt * 0.62);
+    ctx.quadraticCurveTo(cx - wid * 0.58, baseY - hgt * 0.80, cx - wid * 0.24, baseY - hgt * 0.84);
+    ctx.lineTo(cx + wid * 0.24, baseY - hgt * 0.84);
+    ctx.quadraticCurveTo(cx + wid * 0.58, baseY - hgt * 0.80, cx + wid * 0.62, baseY - hgt * 0.62);
+    ctx.lineTo(cx + wid * 0.55, baseY);
+    ctx.closePath();
+    ctx.fill();
+    /* 头：小一点，微微前倾 —— 它在看这边 */
+    ctx.beginPath();
+    ctx.ellipse(cx + wid * 0.06, baseY - hgt * 0.90, wid * 0.30, wid * 0.36, -0.08, 0, 6.283);
+    ctx.fill();
+    ctx.restore();
+  }
   function drawPuffs(dt) {
     ctx.globalCompositeOperation = "lighter";
     puffs.forEach(function (p) {
@@ -172,6 +222,7 @@
     ctx.clearRect(0, 0, W, H);
     drawNight();
     drawLights();
+    drawFigure(dt);
     drawPuffs(dt);
     drawFilms(dt);
     drawGlass();
@@ -184,6 +235,22 @@
   running = !reduce;
   frame(0);
   if (!reduce) requestAnimationFrame(frame);
+
+  /* 对外：游戏逻辑与自动化测试用 */
+  window.__undFigure = {
+    force: function (visible, alpha) {          // 测试用：立刻让它出现/消失
+      figure.want = visible ? (alpha || 0.7) : 0;
+      figure.alpha = figure.want;
+      figure.hold = visible ? 8 : 0;
+      figure.next = visible ? 99 : 12;
+      return figure.alpha;
+    },
+    hide: function () { figure.want = 0; figure.hold = 0; figure.next = 6 + Math.random() * 8; },
+    state: function () {
+      return { alpha: Math.round(figure.alpha * 1000) / 1000, x: Math.round(figure.x * 1000) / 1000,
+               want: figure.want, hold: Math.round(figure.hold * 10) / 10 };
+    }
+  };
 
   var rt;
   window.addEventListener("resize", function () {

@@ -36,6 +36,7 @@ const FILES = [
   "game/game.js",
   "game/content.js",
   "game/rain.js",
+  "game/uncanny.js",
   "assets/js/music.js"
 ];
 

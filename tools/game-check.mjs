@@ -180,6 +180,40 @@ const SUITE = `(async () => {
 
   ok("账本页数等于记录数", document.querySelectorAll("#pages .entry").length === G.state().entries,
      document.querySelectorAll("#pages .entry").length + " / " + G.state().entries);
+  /* ---- 房间里不该有的两样东西 ---- */
+  {
+    const ES = window.__undEye ? window.__undEye.state() : null;
+    ok("书架缝里有一只眼睛", !!(ES && ES.present && ES.rect.w > 8), ES ? JSON.stringify(ES.rect) : "missing");
+    if (ES) {
+      window.__undEye.forceLook(2, -1); await wait(50);
+      ok("眼球会跟着你转", window.__undEye.state().look.x === 2, JSON.stringify(window.__undEye.state().look));
+      window.__undEye.forceHide(true); await wait(50);
+      ok("你靠近时它缩回黑暗", window.__undEye.state().hiding === true, JSON.stringify(window.__undEye.state()));
+      window.__undEye.forceHide(false); await wait(50);
+      ok("它还会再探出来", window.__undEye.state().hiding === false, JSON.stringify(window.__undEye.state()));
+    }
+
+    const fig = window.__undFigure;
+    ok("窗外的黑影有接口", !!fig, fig ? "present" : "missing");
+    if (fig && rc && rc.width > 40) {
+      const g2 = rc.getContext("2d");
+      const sample = () => {
+        const x0 = Math.floor(rc.width * 0.52), x1 = Math.floor(rc.width * 0.74);
+        const y0 = Math.floor(rc.height * 0.58), y1 = Math.floor(rc.height * 0.78);
+        const d = g2.getImageData(x0, y0, Math.max(1, x1 - x0), Math.max(1, y1 - y0)).data;
+        let s = 0, n = 0;
+        for (let i = 0; i < d.length; i += 4 * 7) { s += 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]; n++; }
+        return s / n;
+      };
+      fig.force(false); await wait(120);
+      const away = sample();
+      fig.force(true, 0.85); await wait(160);
+      const there = sample();
+      ok("黑影出现时窗外那块会变暗", there < away - 0.5,
+         "亮度 " + away.toFixed(1) + " → " + there.toFixed(1) + "（alpha=" + fig.state().alpha + "）");
+      fig.force(false); await wait(80);
+    }
+  }
   // ---- 存档 = 分片（独立作用域，避免与上面的 const 重名）----
   {
   G.state(); // 确保有状态
