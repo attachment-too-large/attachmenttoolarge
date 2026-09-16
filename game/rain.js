@@ -110,7 +110,7 @@
      雾在它之后画，于是它总有一半被雾吃掉。它几乎不动；
      你盯着它看（鼠标移到窗上）的时候它会消失 —— 那是它唯一"活着"的证据。
      -------------------------------------------------------------------------- */
-  var figure = { x: 0.66, y: 0.80, alpha: 0, want: 0, next: 4, hold: 0, drifting: 0 };
+  var figure = { x: 0.66, y: 0.80, alpha: 0, want: 0, next: 4, hold: 0, drifting: 0, blinkT: 2.5, blinkShut: 0 };
   /* ?figure=1 让它立刻站在那儿 —— 给截图和人工检查用（平时它是按自己节奏出现的） */
   if (location.search.indexOf("figure=1") >= 0) { figure.want = 0.82; figure.alpha = 0; figure.hold = 9999; }
 
@@ -124,6 +124,10 @@
       if (figure.next <= 0) { figure.want = 0.62 + Math.random() * 0.22; figure.hold = 5 + Math.random() * 6; figure.x = 0.5 + Math.random() * 0.26; }
     }
     figure.alpha += (figure.want - figure.alpha) * Math.min(1, dt * 1.6);
+    /* 眨眼：它不常眨，而且眨眼时不是"闭上"，是那两点光暂时压暗 */
+    figure.blinkT -= dt;
+    if (figure.blinkT <= 0) { figure.blinkShut = 0.13; figure.blinkT = 2.5 + Math.random() * 5; }
+    if (figure.blinkShut > 0) figure.blinkShut -= dt;
     figure.drifting += dt * 0.25;
     if (figure.alpha < 0.01) return;
 
@@ -131,7 +135,7 @@
     var baseY = figure.y * H;                     // 脚在街上
     var hgt = H * 0.34;                           // 高得不太对：比一个人高一截
     var wid = hgt * 0.20;
-    var a = figure.alpha;
+    var a = figure.alpha * 0.86;   // 隔着雾看，暗形略收
 
     ctx.save();
     ctx.globalAlpha = a;
@@ -152,6 +156,33 @@
     ctx.beginPath();
     ctx.ellipse(cx + wid * 0.06, baseY - hgt * 0.90, wid * 0.30, wid * 0.36, -0.08, 0, 6.283);
     ctx.fill();
+    ctx.restore();
+
+    /* 眼睛 —— 全身上下唯一发亮的两点。它不凶，它只是在看你。 */
+    var ex = cx + wid * 0.10, ey = baseY - hgt * 0.89;
+    var vis = figure.blinkShut > 0 ? 0.22 : 1;
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, a * 1.15) * vis;
+    ctx.shadowColor = "rgba(236,228,198,.95)";
+    ctx.shadowBlur = Math.max(5, H * 0.022);
+    ctx.fillStyle = "rgba(240,234,206,1)";
+    /* 每只眼睛外面先垫一圈很淡的光晕 —— 黑暗里的一对眼睛是靠晕才看得见的，
+       只有两个小点的话，缩到真实尺寸就没了。 */
+    [-1, 1].forEach(function (s) {
+      var cxp = ex + s * wid * 0.135;
+      var halo = ctx.createRadialGradient(cxp, ey, 0, cxp, ey, wid * 0.30);
+      halo.addColorStop(0, "rgba(236,228,198,.55)");
+      halo.addColorStop(0.45, "rgba(226,216,182,.16)");
+      halo.addColorStop(1, "rgba(220,210,176,0)");
+      ctx.fillStyle = halo;
+      ctx.beginPath();
+      ctx.arc(cxp, ey, wid * 0.30, 0, 6.283);
+      ctx.fill();
+      ctx.fillStyle = "rgba(244,238,212,1)";
+      ctx.beginPath();
+      ctx.ellipse(cxp, ey, wid * 0.085, wid * 0.058, 0, 0, 6.283);
+      ctx.fill();
+    });
     ctx.restore();
   }
   function drawPuffs(dt) {
@@ -222,8 +253,8 @@
     ctx.clearRect(0, 0, W, H);
     drawNight();
     drawLights();
-    drawFigure(dt);
     drawPuffs(dt);
+    drawFigure(dt);   // 黑影画在雾之后：雾厚的时候它也必须是个可辨的暗形
     drawFilms(dt);
     drawGlass();
     if (!reduce) requestAnimationFrame(frame); else running = false;

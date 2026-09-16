@@ -396,6 +396,18 @@
     } catch (e) { btn.textContent = C.ui.soundUnavailable; }
   }
 
+  /* ---------------- 窗外的它出现时，换成那首曲子 ---------------- */
+  document.addEventListener("und:figure", function (e) {
+    var on = e.detail && e.detail.on;
+    if (on) {
+      S.track = "figure";
+      if (S.sound && window.ATTMusic) { try { window.ATTMusic.selectTrack("figure"); window.ATTMusic.start(); } catch (err) {} }
+      if ($("crttext")) { /* 屏幕上不留任何提示 —— 只有音乐变了 */ }
+    } else {
+      applyMusic();
+    }
+  });
+
   /* ---------------- 事件 ---------------- */
   $("loupeclose").addEventListener("click", closeLoupe);
   $("loupe").addEventListener("click", function (e) { if (e.target === $("loupe")) closeLoupe(); });

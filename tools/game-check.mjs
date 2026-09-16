@@ -214,6 +214,40 @@ const SUITE = `(async () => {
       fig.force(false); await wait(80);
     }
   }
+    /* 黑影的眼睛：全身上下唯一发亮的地方 */
+    const figApi2 = window.__undFigure;
+    if (figApi2 && rc && rc.width > 40) {
+      const g3 = rc.getContext("2d");
+      const want = () => {
+        const x0 = Math.floor(rc.width * 0.50), x1 = Math.floor(rc.width * 0.78);
+        const y0 = Math.floor(rc.height * 0.44), y1 = Math.floor(rc.height * 0.60);
+        const d = g3.getImageData(x0, y0, Math.max(1, x1 - x0), Math.max(1, y1 - y0)).data;
+        let bright = 0, n = 0;
+        for (let i = 0; i < d.length; i += 4) {
+          const v = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+          n++; if (v > 150) bright++;
+        }
+        return { bright, n };
+      };
+      figApi2.force(false); await wait(120);
+      const noEye = want().bright;
+      figApi2.force(true, 0.95); await wait(180);
+      const withEye = want().bright;
+      ok("黑影有一对发亮的眼睛", withEye > noEye + 3,
+         "亮像素 " + noEye + " → " + withEye + "（同一区域 " + want().n + " 个采样）");
+      figApi2.force(false); await wait(60);
+    }
+
+    const cue = await window.ATTMusic.renderOffline(16, "figure");
+    ok("配曲能出声", cue.peak > 0.02 && cue.rms > 0.002, "peak=" + cue.peak + " rms=" + cue.rms);
+    ok("配曲是冷调的稀疏曲", cue.centroidHz > 20, "质心 " + cue.centroidHz + "Hz · 低频占比 " + cue.lowShare);
+
+    document.dispatchEvent(new CustomEvent("und:figure", { detail: { on: true } }));
+    await wait(80);
+    ok("它出现时换成配曲", G.state().track === "figure", "track=" + G.state().track);
+    document.dispatchEvent(new CustomEvent("und:figure", { detail: { on: false } }));
+    await wait(80);
+    ok("它走了换回原曲", G.state().track === "musicbox" || G.state().track === "postrock", "track=" + G.state().track);
   // ---- 存档 = 分片（独立作用域，避免与上面的 const 重名）----
   {
   G.state(); // 确保有状态

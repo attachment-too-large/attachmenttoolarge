@@ -81,7 +81,23 @@
     }
   };
 
-  /* ---------------- 二、你看别处的时候，窗外的它就没了 ---------------- */
+  /* ---------------- 二、它在的时候，音乐要换 ---------------- */
+  /* 黑影按自己的节奏出现。它出现时环境音乐换成 Someone at the Gate ——
+     一首专门为"窗外有东西"写的曲子；它走了再换回来。 */
+  (function watchFigure() {
+    if (!window.__undFigure) { setTimeout(watchFigure, 800); return; }
+    var on = false;
+    setInterval(function () {
+      var st = window.__undFigure.state();
+      var now = st.alpha > 0.35;
+      if (now !== on) {
+        on = now;
+        document.dispatchEvent(new CustomEvent("und:figure", { detail: { on: on, alpha: st.alpha } }));
+      }
+    }, 350);
+  })();
+
+  /* ---------------- 三、你看别处的时候，窗外的它就没了 ---------------- */
   document.addEventListener("click", function (e) {
     if (!window.__undFigure) return;
     var t = e.target;

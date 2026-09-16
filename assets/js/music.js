@@ -704,6 +704,26 @@
     if (local === 0) stTick(ctx, b, t, 0.5);
     if (bar % 8 === 7 && local === 6) swell(ctx, b, t);       // 八小节一次涌浪，接回开头
   }
+  /* ======================= 曲目：Someone at the Gate =======================
+     专为"窗外那个东西出现"写的。它不是一段音乐，是一个**在场的证据**：
+       · 一条极低的长鸣（F#1 / C#2 每四小节交替）—— 低频，听不出旋律，只觉得沉
+       · 每两小节一记高音铃（F#5），尾巴很长，像远处有人按了一下门铃就没再动
+       · 一条半音相邻的微弱脉冲在高处抖（stPulse），冷而不安
+       · 没有鼓、没有低音线、没有和声进行 —— 只有"它在"这件事
+     40 BPM，八小节一循环，音符极少。配黑影用，平时不出现。 */
+  var FG_BPM = 40, FG_BEAT = 60 / FG_BPM, FG_STEP = FG_BEAT / 2, FG_BAR = 8;
+  var FG_DRONE = [46.25, 46.25, 46.25, 69.30];     // F#1 三次，第四次 C#2
+
+  function scheduleFigureStep(ctx, b, step, t) {
+    var bar = Math.floor(step / FG_BAR);
+    var local = step % FG_BAR;
+
+    if (local === 0) stDrone(ctx, b, FG_DRONE[bar % FG_DRONE.length], t, FG_STEP * FG_BAR);
+    if (local === 0 && bar % 2 === 1) bell(ctx, b, 739.99, t);          // F#5，两小节一次
+    if (bar % 8 === 7 && local === 4) bell(ctx, b, 369.99, t);          // 循环末尾降八度，接回开头
+    if (local === 2 || local === 6) stPulse(ctx, b, 1244.51, t, 0.35);  // D#6 的微抖
+    if (local === 0 && bar % 4 === 3) swell(ctx, b, t);                 // 四小节一次极轻的涌浪
+  }
   function schedulePostStep(ctx, b, step, t) {
     var bar = Math.floor(step / POST_BAR) % POST_BARS;
     var local = step % POST_BAR;
@@ -1009,6 +1029,7 @@
     if (state.track === "rap") return RAP_STEP;
     if (state.track === "postrock") return POST_STEP;
     if (state.track === "musicbox") return MB_STEP;
+    if (state.track === "figure") return FG_STEP;
     if (state.track === "electro") return ELEC_STEP;
     return STEP;
   }
@@ -1017,6 +1038,7 @@
     if (state.track === "rap") scheduleRapStep(ctx, b, step, t);
     else if (state.track === "postrock") schedulePostStep(ctx, b, step, t);
     else if (state.track === "musicbox") scheduleMusicBoxStep(ctx, b, step, t);
+    else if (state.track === "figure") scheduleFigureStep(ctx, b, step, t);
     else if (state.track === "electro") scheduleElectroStep(ctx, b, step, t);
     else scheduleLofiStep(ctx, b, step, t);
   }
@@ -1333,7 +1355,7 @@
   }
 
   function selectTrack(id) {
-    if (id !== "rap" && id !== "postrock" && id !== "electro" && id !== "musicbox") id = "lofi";
+    if (id !== "rap" && id !== "postrock" && id !== "electro" && id !== "musicbox" && id !== "figure") id = "lofi";
     if (id === state.track) return state.track;
     var wasOn = state.on;
     if (wasOn) stop();
@@ -1358,6 +1380,7 @@
       id: state.track,
       name: state.track === "rap"
         ? ((data && data.title) || "Attachment Too Large") + " (Rap)"
+        : state.track === "figure" ? "Someone at the Gate"
         : state.track === "musicbox" ? "A Music Box for U-114"
         : state.track === "postrock" ? "The Long Send"
         : state.track === "electro" ? "Rejected (Club Edit)"
@@ -1483,6 +1506,7 @@
     for (var i = 0; i < steps; i++) {
       if (which === "rap") scheduleRapStep(ctx, buses, i, i * dur);
       else if (which === "musicbox") scheduleMusicBoxStep(ctx, buses, i, i * dur);
+      else if (which === "figure") scheduleFigureStep(ctx, buses, i, i * dur);
       else if (which === "postrock") schedulePostStep(ctx, buses, i, i * dur);
       else if (which === "electro") scheduleElectroStep(ctx, buses, i, i * dur);
       else scheduleLofiStep(ctx, buses, i % TOTAL_STEPS, i * dur);
