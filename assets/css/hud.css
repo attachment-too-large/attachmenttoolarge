@@ -1,4 +1,4 @@
-﻿/* ==========================================================================
+/* ==========================================================================
    hud.css — the terminal HUD design layer
    --------------------------------------------------------------------------
    Loaded after style.css and p3.css, this one carries the language of an
@@ -21,6 +21,10 @@
   --hud-dim: rgba(232, 236, 233, 0.55);
   --hud-lime: #c8e84f;
   --hud-lime-soft: rgba(200, 232, 79, 0.14);
+  /* 柠檬绿有两种用途，必须分开：当**底**时它够亮，压深字好看；
+     当**字**时它在浅底上只有约 1.3:1，读不了。深色主题两者同值，
+     浅色主题只把「当字用」的这条压深。 */
+  --hud-signal: #c8e84f;
   --hud-red: #ff5a52;
   --hud-rail: 74px;
   --hud-font: "Bahnschrift", "DIN Alternate", "Segoe UI", system-ui, sans-serif;
@@ -42,7 +46,11 @@ html[data-theme="light"] {
   --hud-line: rgba(16, 18, 20, 0.16);
   --hud-line-soft: rgba(16, 18, 20, 0.08);
   --hud-ink: #14171a;
-  --hud-dim: rgba(20, 23, 26, 0.6);
+  /* 0.6 的深字压在浅底上，合成出来只有约 4.2:1 —— 正文级字号本来就不达标，
+     只是旧审计不看字的透明度，所以一直没被发现。照片背景一进来就更糟。
+     0.72 在浅底上约 5.5:1。 */
+  --hud-dim: rgba(20, 23, 26, 0.72);
+  --hud-signal: #37470c;                   /* 同色系压深：#4f6b12 压在照片洗过的底上只有 2.9:1 */
 }
 
 /* flat plates and hairlines: the opposite of the poster layer's hard shadows */
@@ -57,11 +65,11 @@ html[data-theme="light"] {
 .btn { border: 1px solid var(--hud-line) !important; box-shadow: none !important; }
 .btn-primary { background: var(--hud-lime) !important; color: #10130f !important; border-color: var(--hud-lime) !important; }
 .btn-ghost { background: transparent !important; color: var(--hud-ink) !important; }
-.btn-ghost:hover { border-color: var(--hud-lime) !important; color: var(--hud-lime) !important; }
+.btn-ghost:hover { border-color: var(--hud-signal) !important; color: var(--hud-signal) !important; }
 .eyebrow, .badge, .tag { box-shadow: none !important; transform: none !important; }
 .eyebrow {
-  background: transparent !important; color: var(--hud-lime) !important;
-  border-left: 3px solid var(--hud-lime); padding-left: 10px;
+  background: transparent !important; color: var(--hud-signal) !important;
+  border-left: 3px solid var(--hud-signal); padding-left: 10px;
   font-family: var(--mono) !important; letter-spacing: 0.24em !important;
 }
 .badge { background: transparent; border-color: var(--hud-line); color: var(--hud-dim); }
@@ -74,11 +82,11 @@ h1, h2 { text-shadow: none !important; font-style: normal !important; }
 .section-head[data-num]::before { -webkit-text-stroke-color: var(--hud-line) !important; opacity: 0.9; }
 .lead, p { color: var(--hud-dim); }
 .small, .muted, .footer-col a, .footer-bottom { color: var(--hud-dim); }
-a { color: var(--hud-lime); }
+a { color: var(--hud-signal); }
 
 /* the poster layer's colour motifs become HUD motifs */
 .dark-hour { text-shadow: 3px 3px 0 rgba(200, 232, 79, 0.22) !important; color: var(--hud-ink) !important; }
-.dark-hour .colon, .dark-hour small { color: var(--hud-lime) !important; }
+.dark-hour .colon, .dark-hour small { color: var(--hud-signal) !important; }
 .p3-sticker { background: var(--hud-lime) !important; color: #10130f !important; box-shadow: 4px 4px 0 rgba(232, 236, 233, 0.16) !important; }
 .p3-band, .p3-speed::after { display: none !important; }
 .section::before { opacity: 0.5; }

@@ -24,6 +24,7 @@
   --bone-2: #e6e1d3;
   --bone-3: #d5cfbc;
   --med: #b6d94a;              /* medical green — Kal'tsit */
+  --med-ink: #b6d94a;          /* 同一个绿「当字用」时的那一档；深色主题与 --med 同值 */
   --med-dim: #7f9a2e;
   --steel: #8fa3ad;            /* cold instrument grey */
   --rhodes-ink: #0a0b0a;
@@ -39,6 +40,7 @@ html[data-theme="light"] {
   --rhodes-ink: #16181a;
   --rhodes-ink-2: #23262a;
   --med: #6f8c1c;
+  --med-ink: #37470c;          /* 浅底上 #6f8c1c 只有 3.66:1；照片背景一进来，连压到 #43590f 都只剩 4.40:1，所以再深一档 */
   --steel: #5b6b73;
 }
 
@@ -57,6 +59,14 @@ html::before {                                     /* vignette */
   box-shadow: inset 0 0 200px 70px rgba(0, 0, 0, 0.72);
 }
 html[data-theme="light"]::before { box-shadow: inset 0 0 200px 70px rgba(60, 56, 44, 0.18); }
+/* 暗角要压暗的是**背景**，不是字。
+   它原本是 z-index:2，而正文里的内容在绘制顺序上排在它下面：没有 z-index 的块
+   （.card 之类）属于普通流，写了 z-index:1 的那几个也低于 2。于是整页文字都被
+   这层 0.72 的黑又压了一遍，只是桌面视口下暗角占的比例小、看不出来。
+   真像素审计把它量出来了：手机视口下一块骨白印张实测只剩 rgb(95,95,89)，
+   也就是原本亮度的四成，深色墨字因此掉到 2:1 上下。
+   把 main 抬到暗角之上，暗角就只作用于照片，这正是它该干的活。 */
+main { position: relative; z-index: 3; }
 
 /* ---------- type: two registers ---------------------------------------- */
 h1, h2, .hero-title, .section-head h2 {
@@ -83,8 +93,8 @@ h3, .project-name, .stat-num { font-family: var(--rhodes-label) !important; lett
   font-size: 0.68rem;
 }
 .eyebrow {
-  color: var(--med) !important; background: transparent !important;
-  border-left: 3px solid var(--med); padding: 2px 0 2px 12px; transform: none !important;
+  color: var(--med-ink) !important; background: transparent !important;
+  border-left: 3px solid var(--med-ink); padding: 2px 0 2px 12px; transform: none !important;
 }
 .section-head h2::after { background: var(--med) !important; height: 4px !important; }
 
@@ -317,9 +327,21 @@ html[data-theme="light"] .hud-rail .ic { color: var(--rhodes-ink); }
 :is(.card, .callout, .cta-band, .project-card, .member-card, .table-wrap) code {
   color: #2c3a0c !important; -webkit-text-fill-color: #2c3a0c !important;
 }
-/* chips with their own dark fill keep light text */
-:is(.card, .callout, .cta-band, .project-card, .member-card, .table-wrap) .tag {
-  color: var(--bone) !important; -webkit-text-fill-color: var(--bone) !important;
+/* Chips: fill and text stated together, and the property that actually paints
+   the glyphs stated with them. The rule this replaces read "chips with their own
+   dark fill keep light text" and set bone text — but the fill was no longer
+   dark: style.css had already repainted .tag/.badge with the teal fill, so
+   bone-on-teal measured 1.69:1 and the chip became the one thing on the page
+   nobody could read. The ink sweep above is the reason it has to be restated
+   here at all — it matches bare `span`, and a chip is a span — so this lists the
+   same plates the sweep lists, and wins on source order. Same lesson the buttons
+   below had to learn: a text colour set without its fill can always drift. */
+:is(.card, .stat, .callout, .cta-band, .member-card, .table-wrap, .project-card, .track-bar)
+  :is(.tag, .badge) {
+  background-color: var(--chip-fill, #4fd1a5) !important;
+  color: var(--chip-ink, #08201a) !important;
+  -webkit-text-fill-color: var(--chip-ink, #08201a) !important;
+  border-color: var(--chip-ink, #08201a) !important;
 }
 :is(.card, .callout, .cta-band, .project-card, .member-card, .table-wrap) .eyebrow {
   color: #3c5a0f !important; -webkit-text-fill-color: #3c5a0f !important;

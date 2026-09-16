@@ -5,7 +5,11 @@
      node tools/shot.mjs poster.html preview/poster-light.png light
      node tools/shot.mjs poster.html preview/poster-dark.png  dark 390 780
 
-   参数：<页面> [输出文件] [主题 dark|light|原样] [宽] [高]
+   参数：<页面> [输出文件] [主题 dark|light|原样] [宽] [高] [viewport|full] [截图前要跑的 JS]
+
+   第 7 个参数写 viewport 就只抓首屏，否则抓整页。
+   第 8 个参数是一段 JS，用来把交互态摆好再拍（比如先点一下角色立绘）—— 
+   否则拍到的永远只是初始态，而「点开之后长什么样」恰恰是最需要人眼过一遍的。
 
    为什么不用 msedge --screenshot：那个开关没法在执行前设定 data-theme，
    也拆不掉入口那块挡住整屏的 .intro 板。这里走 DevTools 协议，两件事都能做，
@@ -108,6 +112,17 @@ async function run() {
     returnByValue: true
   });
   await sleep(900);
+
+  /* 截图前先跑一段 JS，用来把交互态摆好（第 8 个参数）。 */
+  const before = process.argv[8];
+  if (before) {
+    try {
+      await cdp.send("Runtime.evaluate", { expression: before, returnByValue: true });
+      await sleep(800);
+    } catch (e) {
+      console.error("截图前的 JS 报错（继续截图）：", e.message);
+    }
+  }
 
   const metrics = await cdp.send("Page.getLayoutMetrics");
   const cs = metrics.cssContentSize || metrics.contentSize;

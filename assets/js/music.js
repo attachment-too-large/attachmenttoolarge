@@ -8,6 +8,12 @@
                                   人声由系统语音合成（speechSynthesis）按行朗读，
                                   并逐句高亮歌词（卡拉OK）。
 
+   另有五条写在本文件里的器乐（曲目表见 music.html）：
+   postrock《The Long Send》、electro《Rejected (Club Edit)》、
+   musicbox《A Music Box for U-114》、figure《Someone at the Gate》、
+   waterline《Through the Water Line》—— 最后一条是缪尔赛思的主题：
+   D 大调五声、76 BPM、32 小节，全程没有一个打击音。
+
    音效：550 报错下坠音、复制成功提示音、418 彩蛋哨音。
    默认静音，必须由用户点击才会出声。
 
@@ -724,6 +730,91 @@
     if (local === 2 || local === 6) stPulse(ctx, b, 1244.51, t, 0.35);  // D#6 的微抖
     if (local === 0 && bar % 4 === 3) swell(ctx, b, t);                 // 四小节一次极轻的涌浪
   }
+  /* ======================= 曲目：Through the Water Line =======================
+     缪尔赛思的主题。她是「水」做出来的精灵，莱茵生命的生态学家 ——
+     写给她的东西不该有鼓：鼓是「有人在做事」，而她只是流动。
+     所以整首没有一个打击音，只有三件事在做功：
+
+       · postPluck 的三角拨弦走八分音符琶音，一音一音漫过去 —— 这是水
+       · pad 的三角加正弦垫底，慢涨慢落，两小节才换一次 —— 这是水面下的暗流
+       · lead 的一条五声音阶长句，八小节一拱，落回主音 —— 这是她
+
+     D 大调五声（D E F# A B），76 BPM，32 小节一循环 ≈ 101 秒。
+     D–Bm–G–A 每两小节换一次。这个进行暖、会绕回自己、不需要「解决」，
+     所以能一直听下去而不累 —— 舒服不是把音量调小，是不制造悬念。
+
+     频谱上刻意避开高频：不用 crash、不用 hat，铃只当零星水滴落在高音区，
+     所以它的高频占比明显低于其余几首，和第一首、后摇都分得开。 */
+  var WL_BPM = 76, WL_BEAT = 60 / WL_BPM, WL_STEP = WL_BEAT / 2, WL_BAR = 8;
+  var WL_BARS = 32;
+  /* pad 走中音区三个音。第一版把它写在低音区，实测能量 97% 落在 300 Hz 以下，
+     频谱重心只有 161 Hz —— 那不是水，是一团糊。垫上移一个八度、低音减到一半之后，
+     旋律与琶音才听得见。 */
+  var WL_CHORDS = [
+    { pad: [293.66, 440.00, 587.33], bass: 73.42,
+      arp: [293.66, 369.99, 440.00, 587.33, 659.25, 587.33, 440.00, 369.99] },   // D
+    { pad: [246.94, 369.99, 493.88], bass: 61.74,
+      arp: [246.94, 369.99, 493.88, 587.33, 739.99, 587.33, 493.88, 369.99] },   // Bm
+    { pad: [196.00, 392.00, 493.88], bass: 49.00,
+      arp: [196.00, 293.66, 392.00, 493.88, 587.33, 493.88, 392.00, 293.66] },   // G
+    { pad: [220.00, 440.00, 554.37], bass: 55.00,
+      arp: [220.00, 329.63, 440.00, 554.37, 659.25, 554.37, 440.00, 329.63] }    // A
+  ];
+  /* 旋律只用 D 五声。五声里没有半音冲突，怎么排都是协和的 ——
+     这是「好听」里最省事、也最可靠的一半。 */
+  var WL_PENTA = [293.66, 329.63, 369.99, 440.00, 493.88, 587.33, 659.25, 739.99, 880.00];
+  /* 十六小节主旋律，每小节八格（八分音符），-1 是留白。
+     0–7 小节陈述，8–15 小节上抬再落回，末音停在主音 D5 —— 回落才叫舒服。 */
+  var WL_MELODY = [
+    [5, -1, 3, -1, 4, -1, 3, -1],
+    [7, -1, -1, -1, 6, -1, 5, -1],
+    [4, -1, 5, -1, 6, -1, 5, -1],
+    [4, -1, 3, -1, -1, -1, -1, -1],
+    [5, -1, 3, -1, 4, -1, 5, -1],
+    [6, -1, -1, -1, 7, -1, 6, -1],
+    [5, -1, 4, -1, 3, -1, 4, -1],
+    [3, -1, -1, -1, -1, -1, -1, -1],
+    [7, -1, 6, -1, 5, -1, 4, -1],
+    [5, -1, -1, -1, 6, -1, 7, -1],
+    [8, -1, 7, -1, 6, -1, 5, -1],
+    [4, -1, -1, -1, 5, -1, 6, -1],
+    [7, -1, 6, -1, 5, -1, 3, -1],
+    [4, -1, 5, -1, 6, -1, 7, -1],
+    [6, -1, 5, -1, 4, -1, 3, -1],
+    [5, -1, -1, -1, -1, -1, -1, -1]
+  ];
+  var WL_DROPS = [1174.66, 987.77, 880.00, 739.99];      // D6 B5 A5 F#5，水滴
+
+  function scheduleWaterlineStep(ctx, b, step, t) {
+    var bar = Math.floor(step / WL_BAR) % WL_BARS;
+    var local = step % WL_BAR;
+    var chord = WL_CHORDS[Math.floor(bar / 2) % WL_CHORDS.length];
+    /* 四层，一层层加进来：0 只有水汽，1 起琶音，2 加旋律，3 收尾放开留白 */
+    var section = bar < 8 ? 0 : bar < 16 ? 1 : bar < 24 ? 2 : 3;
+
+    if (local === 0) pad(ctx, b, chord.pad, t, WL_BAR * WL_STEP * 2);
+    /* 低音只做「有地面」的暗示：0.14 就够，压到 0.26 会把中频全盖住 */
+    if (local === 0 && section >= 1) bass(ctx, b, chord.bass, t, WL_BAR * WL_STEP * 2, 0.14);
+
+    /* 水：八分音符琶音，它是这条曲子的身份，所以音量要给够。
+       弱拍更轻，听起来是碎光而不是机械的十六分音符流水线 */
+    if (section === 3) {
+      if (local % 2 === 0) postPluck(ctx, b, chord.arp[local], t, 0.50);
+    } else if (section >= 1) {
+      postPluck(ctx, b, chord.arp[local], t, local % 2 === 0 ? 0.62 : 0.40);
+    }
+
+    /* 她：主旋律在中后段出现，八小节一拱 */
+    if (section >= 2) {
+      var deg = WL_MELODY[bar % 16][local];
+      if (deg >= 0) lead(ctx, b, WL_PENTA[deg], t, WL_STEP * 3.4);
+    }
+
+    if (local === 5 && bar % 2 === 1) bell(ctx, b, WL_DROPS[(bar >> 1) % WL_DROPS.length], t);
+    /* 循环缝：末尾一记极轻的涌浪，把尾巴送回开头 */
+    if (bar === WL_BARS - 1 && local === 6) swell(ctx, b, t);
+  }
+
   function schedulePostStep(ctx, b, step, t) {
     var bar = Math.floor(step / POST_BAR) % POST_BARS;
     var local = step % POST_BAR;
@@ -1030,6 +1121,7 @@
     if (state.track === "postrock") return POST_STEP;
     if (state.track === "musicbox") return MB_STEP;
     if (state.track === "figure") return FG_STEP;
+    if (state.track === "waterline") return WL_STEP;
     if (state.track === "electro") return ELEC_STEP;
     return STEP;
   }
@@ -1039,6 +1131,7 @@
     else if (state.track === "postrock") schedulePostStep(ctx, b, step, t);
     else if (state.track === "musicbox") scheduleMusicBoxStep(ctx, b, step, t);
     else if (state.track === "figure") scheduleFigureStep(ctx, b, step, t);
+    else if (state.track === "waterline") scheduleWaterlineStep(ctx, b, step, t);
     else if (state.track === "electro") scheduleElectroStep(ctx, b, step, t);
     else scheduleLofiStep(ctx, b, step, t);
   }
@@ -1355,7 +1448,7 @@
   }
 
   function selectTrack(id) {
-    if (id !== "rap" && id !== "postrock" && id !== "electro" && id !== "musicbox" && id !== "figure") id = "lofi";
+    if (id !== "rap" && id !== "postrock" && id !== "electro" && id !== "musicbox" && id !== "figure" && id !== "waterline") id = "lofi";
     if (id === state.track) return state.track;
     var wasOn = state.on;
     if (wasOn) stop();
@@ -1381,6 +1474,7 @@
       name: state.track === "rap"
         ? ((data && data.title) || "Attachment Too Large") + " (Rap)"
         : state.track === "figure" ? "Someone at the Gate"
+        : state.track === "waterline" ? "Through the Water Line"
         : state.track === "musicbox" ? "A Music Box for U-114"
         : state.track === "postrock" ? "The Long Send"
         : state.track === "electro" ? "Rejected (Club Edit)"
@@ -1501,12 +1595,15 @@
     buses.master.gain.value = 0.3;
 
     var dur = which === "rap" ? RAP_STEP : which === "postrock" ? POST_STEP
+            : which === "musicbox" ? MB_STEP : which === "figure" ? FG_STEP
+            : which === "waterline" ? WL_STEP
             : which === "electro" ? ELEC_STEP : STEP;
     var steps = Math.ceil(seconds / dur);
     for (var i = 0; i < steps; i++) {
       if (which === "rap") scheduleRapStep(ctx, buses, i, i * dur);
       else if (which === "musicbox") scheduleMusicBoxStep(ctx, buses, i, i * dur);
       else if (which === "figure") scheduleFigureStep(ctx, buses, i, i * dur);
+      else if (which === "waterline") scheduleWaterlineStep(ctx, buses, i, i * dur);
       else if (which === "postrock") schedulePostStep(ctx, buses, i, i * dur);
       else if (which === "electro") scheduleElectroStep(ctx, buses, i, i * dur);
       else scheduleLofiStep(ctx, buses, i % TOTAL_STEPS, i * dur);

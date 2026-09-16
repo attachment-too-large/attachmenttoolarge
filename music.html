@@ -6,9 +6,9 @@
 <title>Recordings · attachmenttoolarge — the Attachment Too Large Society</title>
 <meta name="description" content="Recordings of one complaint: a live-synthesised instrumental, a boom-bap rap, an electric Memphis soul-blues and a night-drive synth-pop song — each written and generated from its own lyrics.">
 <link rel="icon" href="assets/img/emblem.svg" type="image/svg+xml">
-<link rel="stylesheet" href="assets/css/style.css?v=20260915l">
+<link rel="stylesheet" href="assets/css/style.css?v=20260917a">
 <link rel="stylesheet" href="assets/css/tactical.css">
-<link rel="stylesheet" href="assets/css/rhodes.css?v=20260915l">
+<link rel="stylesheet" href="assets/css/rhodes.css?v=20260917a">
 <script>document.documentElement.className += " js";</script>
 <style>
 /* ==========================================================================
@@ -143,6 +143,55 @@
   body.lyrics-closed #lyrics { display: none; }
   body.lyrics-closed .lyr-reopen { display: block; }
   @media (max-width: 900px) { #lyrics.section { right: 12px; left: 12px; width: auto; bottom: 92px; } }
+
+  /* ==========================================================================
+     这两块面板在**两种主题下都是深色**：.ms-right 是录音棚的哑光炭灰，
+     #lyrics 是抽屉。但 rhodes.css 在浅色主题里有一条
+     `html[data-theme="light"] h1, h2, … { color: var(--rhodes-ink) !important }`
+     （特异度 0,1,2），hud.css 又用 `p`／`span` 一类的规则铺了一层深灰 ——
+     于是浅色主题下这块深板上的字全被改成深色，实测 1.01:1，整页读不了。
+     这里的规矩和海报层一样：**深板上的字必须由深板自己说了算**，
+     所以每条都带 `html[data-theme]` 前缀把特异度压回去。
+     ========================================================================== */
+  html[data-theme] .ms-right h1,
+  html[data-theme] .ms-right h2,
+  html[data-theme] .ms-right h3 { color: #fbfbf9 !important; -webkit-text-fill-color: #fbfbf9 !important; }
+  html[data-theme] .ms-right p,
+  html[data-theme] .ms-right li,
+  html[data-theme] .ms-right span,
+  html[data-theme] .ms-right a,
+  html[data-theme] .ms-right small,
+  html[data-theme] .ms-right strong { color: #eeeeec !important; -webkit-text-fill-color: #eeeeec !important; }
+  html[data-theme] .ms-right .ms-label { color: #c6e04a !important; -webkit-text-fill-color: #c6e04a !important; }
+  html[data-theme] .ms-right .ms-num,
+  html[data-theme] .ms-right .ms-sub,
+  html[data-theme] .ms-right .ms-time { color: rgba(255, 255, 255, 0.66) !important; -webkit-text-fill-color: rgba(255, 255, 255, 0.66) !important; }
+  html[data-theme] .ms-right .ms-track.is-playing .ms-name { color: #dcf57e !important; -webkit-text-fill-color: #dcf57e !important; }
+
+  /* 歌词抽屉：底是 rgba(7,10,9,.86)，字一律浅色 */
+  html[data-theme] #lyrics h1,
+  html[data-theme] #lyrics h2,
+  html[data-theme] #lyrics h3 { color: #f4f6ef !important; -webkit-text-fill-color: #f4f6ef !important; }
+  html[data-theme] #lyrics p,
+  html[data-theme] #lyrics li,
+  html[data-theme] #lyrics span,
+  html[data-theme] #lyrics a,
+  html[data-theme] #lyrics small { color: #dfe4d8 !important; -webkit-text-fill-color: #dfe4d8 !important; }
+  html[data-theme] #lyrics .eyebrow { color: #c6e04a !important; -webkit-text-fill-color: #c6e04a !important; border-left-color: #c6e04a !important; }
+  html[data-theme] #lyrics .lyric-line.is-active { color: #eaffc0 !important; -webkit-text-fill-color: #eaffc0 !important; }
+
+  /* 站头是 sticky 的：滚到哪一节，它底下压的就是那一节的画面。music.html 上半页
+     是录音棚的深色画面，而站头在浅色主题下底色是浅的 —— 实测站内导航只有 2.27:1。
+     这一页整体就是深色的（.ms-right 与歌词抽屉都是），所以把站头也钉成深色、
+     字一律浅色，与 .ms-right 同一套语言。 */
+  html[data-theme] .site-header {
+    background-color: #101214 !important;
+    border-bottom-color: #2a2d31 !important;
+  }
+  html[data-theme] .site-header .nav-links a { color: #e8ece9 !important; -webkit-text-fill-color: #e8ece9 !important; }
+  html[data-theme] .site-header .nav-links a:hover { color: #c8e84f !important; -webkit-text-fill-color: #c8e84f !important; }
+  html[data-theme] .site-header .brand-text { color: #e8ece9 !important; -webkit-text-fill-color: #e8ece9 !important; }
+  html[data-theme] .site-header .brand-text .tld { color: #c8e84f !important; -webkit-text-fill-color: #c8e84f !important; }
 </style>
 </head>
 <body class="tactical page-recordings">
@@ -232,6 +281,12 @@
           <span class="ms-name">Rejected (Club Edit)</span>
           <span class="ms-time">loop</span>
           <span class="ms-sub">electronic · 128 BPM · four-on-the-floor, offbeat super-saw, rolling bass — written in-house, synthesised live</span>
+        </li>
+        <li class="ms-track" data-track="waterline" data-kind="synth">
+          <span class="ms-num">07</span>
+          <span class="ms-name">Through the Water Line</span>
+          <span class="ms-time">loop</span>
+          <span class="ms-sub">instrumental · D major pentatonic, 76 BPM · no drum at all — plucked water, a slow pad, one arching melody · written for Muelsyse</span>
         </li>
         <li class="ms-track" data-track="folk-vocal" data-kind="file" data-src="assets/audio/folk.mp3" data-seconds="170">
           <span class="ms-num">06</span>
@@ -432,18 +487,26 @@
       if (!data) {
         /* neither synthesised track has words; describe what it is instead */
         var isScore = id === "postrock";
+        var isWater = id === "waterline";
         if (titleEl) titleEl.textContent = "No words";
-        if (leadEl) leadEl.textContent = isScore
+        if (leadEl) leadEl.textContent = (isScore || isWater)
           ? "A score, not a song: nothing is being sung here either — only instruments, written in-house and played live by the browser."
           : "The first track is instrumental: there is nothing being sung, so there is nothing to print here.";
         var songs = (window.ATTRECORDINGS || []).length + 1;
         host.innerHTML = '<div class="callout"><div><b>' +
-          (isScore ? "The Long Send — in-house post-rock" : "Failed at 19:59 — instrumental") + "</b>" +
+          (isScore ? "The Long Send — in-house post-rock"
+                   : isWater ? "Through the Water Line — in-house instrumental"
+                   : "Failed at 19:59 — instrumental") + "</b>" +
           (isScore
             ? "E minor at 92 BPM, eight bars that build in four layers: a clean delayed arpeggio and a pad alone, " +
               "then bass, soft kick and bells, then tremolo-picked sixteenths with snare and hats, then everything " +
               "at once with a distorted high layer — a noise swell and a cymbal carry it back into the loop. " +
               "Written in-house; synthesised note by note while you listen."
+            : isWater
+            ? "D major pentatonic at 76 BPM, 32 bars, D–Bm–G–A changing every two bars. There is no drum of any " +
+              "kind: a plucked arpeggio in eighth notes that moves like shallow water, a pad that takes two bars " +
+              "to breathe, and one five-note melody that arches for eight bars and settles back on the tonic. " +
+              "Written for Muelsyse — a character the author likes — and synthesised note by note while you listen."
             : "Built note by note in the browser as it plays: a pad, a walking bass and an arpeggio over " +
               "Am–F–C–G. No percussion, no hiss, no audio file, made to loop forever.") +
           " " + songs + " tracks above carry words; pick one and they will appear here.</div></div>";

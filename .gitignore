@@ -40,3 +40,10 @@ preview/_cdp-profile/
 
 # 浏览器配置目录一律不入库（脚本已改用系统临时目录，这里是兜底）
 preview/_*-profile/
+
+# 第三方角色立绘：著作权归鹰角网络／蒙塔山所有，仅在本地演示中使用，绝不入库。
+# 换角色时把新文件名加在这里，规则一致：从网上取的图都不进仓库。
+# 图不在仓库里，所以线上会是「立绘缺席」的降级态——character.js 会走 .ch-fallback。
+assets/img/muelsyse.png
+assets/img/muelsyse-bust.png
+assets/img/muelsyse-chibi.png

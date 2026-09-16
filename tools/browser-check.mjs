@@ -16,6 +16,7 @@ import { mkdtempSync, rmSync, existsSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { pathToFileURL, fileURLToPath } from "node:url";
+import { inflateSync } from "node:zlib";
 
 const EDGE_CANDIDATES = [
   "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
@@ -386,6 +387,27 @@ const SUITE = `(async () => {
     ok("切到实时合成器乐会停掉文件", a2.paused === true, "file audio paused");
     ok("播放条反映状态", /Failed at 19:59/.test(document.querySelector("[data-ms-state]")?.textContent || ""),
        document.querySelector("[data-ms-state]")?.textContent?.slice(0, 40));
+
+    /* ---------- 缪尔赛思的主题：Through the Water Line ----------
+       「好听、舒服」不能靠嘴说，但可以用几个能测的代理指标守住：
+       有波形、不削顶、不刺耳、没有鼓、有层次、引擎认得这个 id。
+       这些一条都不过关时，它不可能舒服。 */
+    const wl = await music.renderOffline(28, "waterline");
+    ok("水线主题有波形", wl.peak > 0.02 && wl.rms > 0.004, "peak=" + wl.peak + " rms=" + wl.rms);
+    ok("水线主题不削顶", wl.peak < 0.95, "peak=" + wl.peak + "（>=0.95 就是在削顶）");
+    ok("水线主题不刺耳（高频占比低）", wl.hf < 0.10,
+       "hf=" + wl.hf + " · centroid " + wl.centroidHz + "Hz · low/mid/high " + wl.lowShare + "/" + wl.midShare + "/" + wl.highShare);
+    /* 琶音是八分音符，本来就有起音；要证明的是它比鼓组稀疏得多，而不是「绝对没有起音」 */
+    ok("水线主题没有鼓（比电音稀疏）", wl.onsetsPerSecond < el.onsetsPerSecond,
+       "waterline " + wl.onsetsPerSecond + "/s vs electro " + el.onsetsPerSecond + "/s");
+    /* 48 秒刚好跨过第一层到第二层的分界（前 8 小节只有垫，之后才进琶音与低音），
+       再长就只是让审计多跑一遍离线渲染。 */
+    const wlBuild = await music.renderOffline(48, "waterline");
+    ok("水线主题有层次（不是一条音量到底）", wlBuild.rmsSecondHalf > wlBuild.rmsFirstHalf,
+       "前 24 秒 rms " + wlBuild.rmsFirstHalf + " → 后 24 秒 " + wlBuild.rmsSecondHalf);
+    /* selectTrack 会把不认识的 id 悄悄退回 lofi —— 所以这条断言是有意义的：
+       忘了把新曲目加进白名单时，这里会红。 */
+    ok("引擎认得水线主题", music.selectTrack("waterline") === "waterline", music.currentTrack().name);
     if (window.ATTMusic && ATTMusic.isOn()) ATTMusic.stop();
   } else if (document.querySelector('audio[src*="rap.mp3"]')) {
     ok("旧版说唱页（已退役为跳转）", true, "legacy page");
@@ -511,54 +533,70 @@ const SUITE = `(async () => {
     const auditRoots = [...document.querySelectorAll("main h1, main h2, main h3, main p, main li, main a, main span, main button, main label")]
       .filter(el => el.offsetParent !== null && el.textContent.trim().length > 3
         && !el.closest(".hud-rail,.hud-timer,.hud-crumb,.music-pill,.bg-fx"));
-    const contrastAll = [];
-    const lowContrast = [];
-    for (const el of auditRoots) {
-      const cs = getComputedStyle(el);
-      const fillRaw = cs.webkitTextFillColor || "";
-      const colorRaw = cs.color;
-      const fillSet = !!fillRaw && fillRaw !== "rgb(0, 0, 0)" && fillRaw !== colorRaw;
-      const fgRaw = fillSet ? fillRaw : colorRaw;
-      const who = nameOf(el);
-      const snippet = el.textContent.trim().slice(0, 18);
-      const fgNote = "color " + colorRaw + (fillSet ? " · -webkit-text-fill-color " + fillRaw : "");
-      const L1 = lumOf(fgRaw);
-      if (L1 < 0) {
-        const rec = { ratio: 0, line: who + " '" + snippet + "' · " + fgNote +
-          " · 透明填充：没有任何颜色可读（审计规则 2）" };
-        contrastAll.push(rec);
-        lowContrast.push(rec);
-        continue;
+    function contrastPass() {
+      const all = [];
+      const low = [];
+      for (const el of auditRoots) {
+        const cs = getComputedStyle(el);
+        const fillRaw = cs.webkitTextFillColor || "";
+        const colorRaw = cs.color;
+        const fillSet = !!fillRaw && fillRaw !== "rgb(0, 0, 0)" && fillRaw !== colorRaw;
+        const fgRaw = fillSet ? fillRaw : colorRaw;
+        const who = nameOf(el);
+        const snippet = el.textContent.trim().slice(0, 18);
+        const fgNote = "color " + colorRaw + (fillSet ? " · -webkit-text-fill-color " + fillRaw : "");
+        const L1 = lumOf(fgRaw);
+        if (L1 < 0) {
+          const rec = { ratio: 0, line: who + " '" + snippet + "' · " + fgNote +
+            " · 透明填充：没有任何颜色可读（审计规则 2）" };
+          all.push(rec);
+          low.push(rec);
+          continue;
+        }
+        const bg = bgSource(el);
+        const ratio = (Math.max(L1, bg.lum) + 0.05) / (Math.min(L1, bg.lum) + 0.05);
+        const need = wcagNeed(cs);
+        const rec = { ratio: ratio,
+          line: who + " '" + snippet + "' · fg " + fgRaw + " (" + fgNote + ")" +
+                " · bg " + bg.eff + " = " + bg.css + " 由 " + bg.prop + " 提供，来自祖先 " + nameOf(bg.el) +
+                " · " + ratio.toFixed(2) + ":1（需 " + need + "）" };
+        all.push(rec);
+        if (ratio < need) low.push(rec);
       }
-      const bg = bgSource(el);
-      const ratio = (Math.max(L1, bg.lum) + 0.05) / (Math.min(L1, bg.lum) + 0.05);
-      const need = wcagNeed(cs);
-      const rec = { ratio: ratio,
-        line: who + " '" + snippet + "' · fg " + fgRaw + " (" + fgNote + ")" +
-              " · bg " + bg.eff + " = " + bg.css + " 由 " + bg.prop + " 提供，来自祖先 " + nameOf(bg.el) +
-              " · " + ratio.toFixed(2) + ":1（需 " + need + "）" };
-      contrastAll.push(rec);
-      if (ratio < need) lowContrast.push(rec);
+      all.sort((a, b) => a.ratio - b.ratio);
+      low.sort((a, b) => a.ratio - b.ratio);
+      return { all: all, low: low };
     }
-    contrastAll.sort((a, b) => a.ratio - b.ratio);
-    lowContrast.sort((a, b) => a.ratio - b.ratio);
-    const worst = contrastAll.length ? contrastAll[0].ratio.toFixed(2) + ":1" : "n/a";
-    ok("审计: 文字对比度足够", lowContrast.length === 0,
-       lowContrast.length
-         ? lowContrast.length + " / " + contrastAll.length + " 处不达 WCAG AA，最低 " + worst + "（明细见下）"
-         : contrastAll.length + " 处文字全部达到 WCAG AA，最低 " + worst);
-    /* Failures first, each on its own line, with the three things needed to fix
-       it: the painted foreground, the paint behind it, and the element that owns
-       that paint. This is the part that used to be missing. */
-    lowContrast.slice(0, 8).forEach((r, i) => {
-      ok("审计·对比度不达标 " + (i + 1), false, r.line);
-    });
-    if (lowContrast.length > 8) ok("审计·对比度不达标（其余）", false, "另有 " + (lowContrast.length - 8) + " 处未列出");
-    /* Always printed, pass or fail: the three tightest pairs on the page and the
-       box that owns each backdrop, so a green run still shows real colours. */
-    contrastAll.slice(0, 3).forEach((r, i) => {
-      ok("审计·最紧的 " + (i + 1) + " 处（始终打印实际颜色）", true, r.line);
-    });
+
+    /* Both themes, every time. This used to measure whichever theme happened to
+       be active — which was always dark — so the light theme was never checked
+       at all, and the light theme is where the unreadable text was. */
+    const contrastThemeBefore = document.documentElement.getAttribute("data-theme");
+    for (const auditTheme of ["dark", "light"]) {
+      document.documentElement.setAttribute("data-theme", auditTheme);
+      await wait(560);                      // the theme is a crossfade; let the colours settle
+      const pass = contrastPass();
+      const worst = pass.all.length ? pass.all[0].ratio.toFixed(2) + ":1" : "n/a";
+      ok("审计: 文字对比度足够 · " + auditTheme, pass.low.length === 0,
+         pass.low.length
+           ? pass.low.length + " / " + pass.all.length + " 处不达 WCAG AA，最低 " + worst + "（明细见下）"
+           : pass.all.length + " 处文字全部达到 WCAG AA，最低 " + worst);
+      /* Failures first, each on its own line, with the three things needed to fix
+         it: the painted foreground, the paint behind it, and the element that owns
+         that paint. This is the part that used to be missing. */
+      pass.low.slice(0, 8).forEach((r, i) => {
+        ok("审计·对比度不达标 · " + auditTheme + " " + (i + 1), false, r.line);
+      });
+      if (pass.low.length > 8) ok("审计·对比度不达标（其余）· " + auditTheme, false, "另有 " + (pass.low.length - 8) + " 处未列出");
+      /* Always printed, pass or fail: the three tightest pairs on the page and the
+         box that owns each backdrop, so a green run still shows real colours. */
+      pass.all.slice(0, 3).forEach((r, i) => {
+        ok("审计·最紧的 " + (i + 1) + " 处 · " + auditTheme, true, r.line);
+      });
+    }
+    if (contrastThemeBefore) document.documentElement.setAttribute("data-theme", contrastThemeBefore);
+    else document.documentElement.removeAttribute("data-theme");
+    await wait(320);
 
     const invisibleHeads = [...document.querySelectorAll("main h1, main h2")].filter(h => {
       const r = h.getBoundingClientRect();
@@ -590,6 +628,106 @@ const SUITE = `(async () => {
     }
     const stamps = [...document.querySelectorAll("link[rel=stylesheet]")].map(l => { const h = l.getAttribute("href") || ""; const i = h.indexOf("?v="); return i < 0 ? "" : h.slice(i + 3); }).filter(Boolean);
     ok("审计: 样式表缓存戳一致", new Set(stamps).size <= 1, stamps.join(", "));
+  }
+
+  /* ---------- 角色立绘卡：点一下她打招呼 ---------- */
+  /* 这一组刻意不写「元素存在」——那等于没测。立绘要断言**真的解码出来了**
+     （naturalWidth > 0），加载态要断言**收敛**（骨架屏不会永远转），
+     交互要断言**点完真的多了一句问候**且换了内容。 */
+  const chFig = document.querySelector("[data-ch-figure]");
+  if (chFig) {
+    const chArt = chFig.querySelector("[data-ch-art]");
+    const chPanel = document.querySelector("[data-ch-greeting]");
+    const chLine = document.querySelector("[data-ch-line]");
+    const chSkel = chFig.querySelector(".ch-skeleton");
+
+    ok("角色立绘真的解码出来了", !!chArt && chArt.complete && chArt.naturalWidth > 0,
+       chArt ? chArt.naturalWidth + "x" + chArt.naturalHeight + " · complete=" + chArt.complete : "没有 img");
+
+    /* 三版立绘的切换：断言真的换了版本、真的换了画、问候语也跟着换了，
+       而不是只断言「有个按钮」。Q版那张是从官方 Spine 模型渲出来的，
+       所以这里按「每一版都真的解码出来了」逐一验，而不是只验第一版。 */
+    const chSwitch = [...document.querySelectorAll(".ch-switch-btn")];
+    const chArts = [...chFig.querySelectorAll("[data-ch-art]")];
+    ok("立绘的每一版都解码出来了", chArts.length >= 2 && chArts.every(i => i.complete && i.naturalWidth > 0),
+       chArts.map(i => i.getAttribute("data-ch-art") + " " + i.naturalWidth + "x" + i.naturalHeight).join(" · "));
+
+    if (chSwitch.length >= 2) {
+      const variantNow = () => chFig.getAttribute("data-ch-variant");
+      const start = variantNow();
+      ok("立绘有多版可切", chSwitch.length + " 个切换按钮，当前 " + start, "当前版本 " + start);
+
+      let switched = 0, failed = [];
+      for (const btn of chSwitch) {
+        const want = btn.getAttribute("data-ch-variant");
+        if (want === start || btn.disabled) continue;
+        const img = chFig.querySelector('[data-ch-art="' + want + '"]');
+        btn.click();
+        /* 交叉淡入淡出是 0.42s 的过渡：轮询到终态再断言，别用固定 sleep 赌时间。 */
+        await until(() => img && parseFloat(getComputedStyle(img).opacity) > 0.98, 2500, 100);
+        const shown = img ? getComputedStyle(img).opacity : "0";
+        const okNow = variantNow() === want && parseFloat(shown) > 0.98 && btn.getAttribute("aria-pressed") === "true";
+        if (okNow) switched++;
+        else failed.push(want + "(variant=" + variantNow() + " opacity=" + shown + " pressed=" + btn.getAttribute("aria-pressed") + ")");
+      }
+      ok("每一版都切得过去、而且真的画出来了", failed.length === 0 && switched === chSwitch.length - 1,
+         failed.length ? "没过：" + failed.join(" · ") : switched + " 版全部切换成功");
+
+      /* 切回去，并确认有一版能切回起点 */
+      const first = chSwitch.find(b => b.getAttribute("data-ch-variant") === start);
+      if (first) { first.click(); await until(() => variantNow() === start, 2000, 100); }
+      ok("能切回来", variantNow() === start, "回到 " + variantNow());
+    }
+
+    await until(() => chFig.classList.contains("is-ready") || chFig.classList.contains("is-missing"), 7000, 120);
+    const chReady = chFig.classList.contains("is-ready");
+    const chMissing = chFig.classList.contains("is-missing");
+    ok("加载态会收敛（骨架屏不会一直转）", chReady || chMissing,
+       chReady ? "is-ready：立绘已就位" : chMissing ? "is-missing：立绘缺席，走降级" : "卡在加载中");
+    ok("就位后骨架屏已撤掉", !chReady || (chSkel && getComputedStyle(chSkel).display === "none"),
+       chSkel ? "display=" + getComputedStyle(chSkel).display : "没有骨架屏");
+
+    if (chPanel && chLine) {
+      const hiddenFirst = getComputedStyle(chPanel).visibility === "hidden";
+      ok("问候语默认先藏着（点击才浮现）", hiddenFirst, "visibility=" + getComputedStyle(chPanel).visibility);
+
+      const line0 = chLine.textContent.trim();
+      chFig.click();
+      await wait(260);
+      const shown = getComputedStyle(chPanel).visibility === "visible";
+      ok("点一下就浮现问候", shown && chLine.textContent.trim().length > 4,
+         shown ? "「" + chLine.textContent.trim().slice(0, 20) + "」" : "面板仍不可见");
+      ok("点击后如实上报展开状态", chFig.getAttribute("aria-expanded") === "true",
+         "aria-expanded=" + chFig.getAttribute("aria-expanded"));
+
+      chFig.click();
+      await wait(260);
+      ok("再点换下一句", chLine.textContent.trim() !== line0 && chLine.textContent.trim().length > 4,
+         "「" + chLine.textContent.trim().slice(0, 20) + "」");
+    } else {
+      ok("角色卡带问候面板", false, "缺少 [data-ch-greeting] 或 [data-ch-line]");
+    }
+
+    ok("页面注明了角色来源", /鹰角|Hypergryph/i.test(document.body.innerText),
+       "版权与「作者喜欢的角色」声明在位");
+
+    /* 她的主题曲：断言真的出声、真的是那一首、而且能停下。
+       「按钮存在」不算数 —— 引擎没加载时按钮会被禁用，那时这条会走跳过分支。 */
+    const chPlay = document.querySelector("[data-ch-play]");
+    if (chPlay && !chPlay.disabled) {
+      chPlay.click();
+      await until(() => window.ATTMusic && window.ATTMusic.isOn(), 4000, 120);
+      const nowOn = window.ATTMusic.isOn();
+      ok("卡上能放她的主题曲", nowOn && window.ATTMusic.currentTrack().id === "waterline",
+         nowOn ? window.ATTMusic.currentTrack().name : "点了没出声");
+      chPlay.click();
+      await until(() => !window.ATTMusic.isOn(), 4000, 120);
+      ok("再点能停下", window.ATTMusic.isOn() === false, "playing=" + window.ATTMusic.isOn());
+    } else {
+      ok("卡上没有主题曲按钮（跳过）", true, "跳过");
+    }
+  } else {
+    ok("本页无角色立绘卡", true, "跳过");
   }
 
   /* ---------- 歌词页：HTML 与 lyrics.js 一致性 ---------- */
@@ -696,6 +834,253 @@ const NOJS = `(() => {
   };
 })()`;
 
+/* ==================== 真像素对比度：量屏幕上真正画出来的底 ====================
+   为什么需要它：审计原来只沿祖先链找底色。这个站的正文底下压着一张固定定位
+   的照片（z-index:-1，不是文字的祖先），于是祖先链一路走到 body 的骨白底，
+   算出 16:1 报 PASS —— 而屏幕上真实的底是那张照片。浅色主题下正文因此只有
+   约 1.3:1，全站读不了，审计却一路绿灯。
+
+   所以这里不再"推算"底色，而是**拍下来**：每个视口取几个滚动位置，
+   截一张图，把每个文字元素矩形内的像素取出来，剔除接近字色的像素（那些是字），
+   取剩下像素的中位亮度当底色，再算对比度。照片、canvas、任何不是祖先画的底，
+   都骗不过去。
+
+   中位数为什么够用：文字在它的包围盒里是少数像素，留下来的多数像素就是底。
+   若底色和字色几乎一样（真正的故障），剔除后所剩无几 —— 这时就用全部像素的
+   中位数，算出来自然是很差的比值，正好是我们想要的结论。 */
+
+/* 最小 PNG 解码：只认 8 位 RGB / RGBA，Chrome 截图就是这两种。 */
+function decodePng(buf) {
+  if (buf.readUInt32BE(0) !== 0x89504e47) throw new Error("不是 PNG");
+  let p = 8, w = 0, h = 0, depth = 0, color = 0;
+  const idat = [];
+  while (p + 8 <= buf.length) {
+    const len = buf.readUInt32BE(p);
+    const type = buf.toString("ascii", p + 4, p + 8);
+    const data = buf.subarray(p + 8, p + 8 + len);
+    if (type === "IHDR") { w = data.readUInt32BE(0); h = data.readUInt32BE(4); depth = data[8]; color = data[9]; }
+    else if (type === "IDAT") idat.push(data);
+    else if (type === "IEND") break;
+    p += 12 + len;
+  }
+  const ch = color === 6 ? 4 : color === 2 ? 3 : 0;
+  if (!ch || depth !== 8) throw new Error("只支持 8 位 RGB/RGBA，收到 depth=" + depth + " color=" + color);
+  const raw = inflateSync(Buffer.concat(idat));
+  const stride = w * ch;
+  const out = Buffer.alloc(w * h * 4);
+  let prev = Buffer.alloc(stride);
+  let off = 0;
+  for (let y = 0; y < h; y++) {
+    const filt = raw[off++];
+    const line = Buffer.from(raw.subarray(off, off + stride));
+    off += stride;
+    for (let i = 0; i < stride; i++) {
+      const a = i >= ch ? line[i - ch] : 0;
+      const b = prev[i];
+      const c = i >= ch ? prev[i - ch] : 0;
+      let v = line[i];
+      if (filt === 1) v += a;
+      else if (filt === 2) v += b;
+      else if (filt === 3) v += (a + b) >> 1;
+      else if (filt === 4) {
+        const pp = a + b - c, pa = Math.abs(pp - a), pb = Math.abs(pp - b), pc = Math.abs(pp - c);
+        v += (pa <= pb && pa <= pc) ? a : (pb <= pc ? b : c);
+      }
+      line[i] = v & 0xff;
+    }
+    prev = line;
+    for (let x = 0; x < w; x++) {
+      const s = x * ch, d = (y * w + x) * 4;
+      out[d] = line[s];
+      out[d + 1] = ch >= 3 ? line[s + 1] : line[s];
+      out[d + 2] = ch >= 3 ? line[s + 2] : line[s];
+      out[d + 3] = ch === 4 ? line[s + 3] : 255;
+    }
+  }
+  return { width: w, height: h, data: out };
+}
+
+function lum255(r, g, b) {
+  const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+  return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+}
+function rgbOf(s) {
+  const n = String(s || "").replace("rgba(", "").replace("rgb(", "").replace(")", "").split(",").map(Number);
+  if (n.length < 3 || isNaN(n[0])) return null;
+  return [n[0], n[1], n[2], (n.length > 3 && !isNaN(n[3])) ? n[3] : 1];
+}
+
+/* 入口板会盖住整屏，先摘掉；顺便把「已看过入口」记下来。
+   再把动画和过渡全部停掉：本站的 .reveal 是滚动进入时 0.5 秒淡入的，截图若正好
+   落在淡入途中，元素还是半透明的，量出来的底就偏暗 —— 实测一块青绿徽标被拍成
+   了 60% 亮度，报出一个并不存在的 3.89:1。量像素前先把画面钉住。 */
+const PIXEL_PREP = `(function () {
+  try { sessionStorage.setItem("att.intro.seen", "1"); } catch (e) {}
+  var p = document.querySelector(".intro");
+  if (p && p.parentNode) p.parentNode.removeChild(p);
+  document.documentElement.classList.remove("intro-lock");
+  var quiet = document.createElement("style");
+  quiet.id = "att-pixel-quiet";
+  quiet.textContent = "*,*::before,*::after{transition:none !important;animation:none !important}";
+  document.head.appendChild(quiet);
+  document.querySelectorAll(".reveal").forEach(function (e) { e.classList.add("is-visible"); });
+  return true;
+})()`;
+
+const PIXEL_RESTORE = `(function () {
+  var q = document.getElementById("att-pixel-quiet");
+  if (q && q.parentNode) q.parentNode.removeChild(q);
+  return true;
+})()`;
+
+const PIXEL_RESET = `document.querySelectorAll("[data-probed]").forEach(function (e) { e.removeAttribute("data-probed"); }); true;`;
+
+/* 列出当前视口里还没量过、也没有被固定控件压住的文字元素。 */
+const PIXEL_PROBE = `(function () {
+  const out = [];
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const sel = "main h1, main h2, main h3, main p, main li, main a, main span, main button, main label,"
+            + " .hud-timer span, .hud-timer b, .hud-crumb, .hud-crumb span, .hud-crumb b, .hud-rail a,"
+            + " .footer-bottom span, .footer-col a, .footer-col h4, .brand-text, .nav-links a, .site-footer p";
+  /* 固定控件有自己的不透明面板，"文字被它压住"是版式问题、不是对比度问题，
+     所以压在固定控件下的元素直接跳过，免得把噪声算成失败。 */
+  const fixed = [...document.querySelectorAll(".hud-crumb,.hud-rail,.hud-timer,.music-pill,.skip-link")]
+    .map(function (e) { return e.getBoundingClientRect(); })
+    .filter(function (r) { return r.width > 0 && r.height > 0; });
+  const lum = function (s) {
+    const n = String(s || "").replace("rgba(", "").replace("rgb(", "").replace(")", "").split(",").map(Number);
+    if (n.length < 3 || isNaN(n[0])) return -1;
+    if (n.length > 3 && n[3] === 0) return -1;
+    const f = [n[0], n[1], n[2]].map(function (v) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
+    return 0.2126 * f[0] + 0.7152 * f[1] + 0.0722 * f[2];
+  };
+  for (const el of document.querySelectorAll(sel)) {
+    if (el.getAttribute("data-probed") === "1") continue;
+    if (el.offsetParent === null) continue;
+    const txt = el.textContent.trim();
+    if (txt.length <= 3) continue;
+    const r = el.getBoundingClientRect();
+    if (r.width < 8 || r.height < 8) continue;
+    if (r.bottom < 2 || r.top > vh - 2 || r.right < 2 || r.left > vw - 2) continue;
+    if (fixed.some(function (f) { return Math.min(r.bottom, f.bottom) - Math.max(r.top, f.top) > 4 && Math.min(r.right, f.right) - Math.max(r.left, f.left) > 4; })) continue;
+    const cs = getComputedStyle(el);
+    /* visibility:hidden 的元素仍有矩形、offsetParent 也不为 null，但屏幕上没有它的
+       像素。不排掉的话，采到的是它身后的底，算出一个根本不存在的一比一失败。 */
+    if (cs.visibility !== "visible" || parseFloat(cs.opacity) === 0) continue;
+    const fill = cs.webkitTextFillColor || "";
+    const col = cs.color;
+    const fg = (fill && fill !== "rgb(0, 0, 0)" && fill !== col) ? fill : col;
+    const L = lum(fg);
+    if (L < 0) continue;
+    const size = parseFloat(cs.fontSize) || 16;
+    const weight = parseInt(cs.fontWeight, 10) || 400;
+    el.setAttribute("data-probed", "1");
+    const raw = el.className;
+    const cls = typeof raw === "string" ? raw.split(" ").filter(Boolean).slice(0, 2) : [];
+    out.push({
+      who: el.tagName.toLowerCase() + cls.map(function (c) { return "." + c; }).join(""),
+      txt: txt.slice(0, 16), fg: fg, L: L,
+      need: (size >= 24 || (size >= 18.66 && weight >= 700)) ? 3 : 4.5,
+      vw: vw, vh: vh,
+      x: Math.max(0, Math.round(r.left)), y: Math.max(0, Math.round(r.top)),
+      w: Math.round(Math.min(r.right, vw) - Math.max(r.left, 0)),
+      h: Math.round(Math.min(r.bottom, vh) - Math.max(r.top, 0))
+    });
+  }
+  return out;
+})()`;
+
+async function pixelContrast(cdp, isMobile) {
+  const rows = [];
+  const themeBefore = await cdp.send("Runtime.evaluate", {
+    expression: `document.documentElement.getAttribute("data-theme") || ""`, returnByValue: true
+  });
+  const restore = themeBefore.result.value;
+  const fractions = isMobile ? [0, 0.5] : [0, 0.34, 0.68];
+
+  const all = {};
+  let shotDims = "";
+  /* style.css 里是 html { scroll-behavior: smooth }。不关掉它，window.scrollTo
+     会花几百毫秒慢慢滚，于是"取矩形"和"截图"落在两个不同的滚动位置上，
+     量出来的底全是错的（实测表现为一片 1.00:1 的假失败）。 */
+  await cdp.send("Runtime.evaluate", { expression: `document.documentElement.style.scrollBehavior = "auto"; true;` });
+  for (const theme of ["dark", "light"]) {
+    await cdp.send("Runtime.evaluate", { expression: `document.documentElement.setAttribute("data-theme", "${theme}"); true;` });
+    await cdp.send("Runtime.evaluate", { expression: PIXEL_RESET });
+    await sleep(560);
+    all[theme] = [];
+    for (const f of fractions) {
+      await cdp.send("Runtime.evaluate", {
+        expression: `window.scrollTo(0, Math.round((document.documentElement.scrollHeight - window.innerHeight) * ${f})); true;`
+      });
+      await sleep(280);
+      const probe = await cdp.send("Runtime.evaluate", { expression: PIXEL_PROBE, returnByValue: true });
+      const items = (probe.result && probe.result.value) || [];
+      if (!items.length) continue;
+      let shot;
+      try {
+        shot = await cdp.send("Page.captureScreenshot", { format: "png" });
+      } catch (e) { continue; }
+      let img;
+      try { img = decodePng(Buffer.from(shot.data, "base64")); } catch (e) { continue; }
+      if (!shotDims && items[0]) shotDims = img.width + "x" + img.height + " 截图像素 / 视口 " + items[0].vw + "x" + items[0].vh;
+
+      for (const it of items) {
+        const fgRgb = rgbOf(it.fg);
+        if (!fgRgb) continue;
+        /* 手机模拟下截图可能是被缩放过的（页面缩放因子），所以一律按
+           「截图尺寸 / 布局视口」换算坐标，不能假设 1:1 —— 之前就是这么错位的。 */
+        const sx = it.vw ? img.width / it.vw : 1;
+        const sy = it.vh ? img.height / it.vh : 1;
+        const x0 = Math.max(0, Math.round(it.x * sx)), x1 = Math.min(img.width, Math.round((it.x + it.w) * sx));
+        const y0 = Math.max(0, Math.round(it.y * sy)), y1 = Math.min(img.height, Math.round((it.y + it.h) * sy));
+        if (x1 - x0 < 3 || y1 - y0 < 3) continue;
+        const stepX = Math.max(1, Math.round(sx)), stepY = Math.max(1, Math.round(sy));
+        const vals = [];
+        for (let y = y0; y < y1; y += stepY) {
+          for (let x = x0; x < x1; x += stepX) {
+            const i = (y * img.width + x) * 4;
+            const r = img.data[i], g = img.data[i + 1], b = img.data[i + 2];
+            const d = Math.abs(r - fgRgb[0]) + Math.abs(g - fgRgb[1]) + Math.abs(b - fgRgb[2]);
+            vals.push({ L: lum255(r, g, b), r: r, g: g, b: b, glyph: d < 90 });
+          }
+        }
+        if (vals.length < 6) continue;
+        const clean = vals.filter((v) => !v.glyph);
+        const use = clean.length >= vals.length * 0.2 ? clean : vals;
+        use.sort((a, b) => a.L - b.L);
+        const mid = use[Math.floor(use.length / 2)];
+        /* 半透明字色（本站到处在用 rgba 的 --hud-dim）在屏幕上并不是它自己，
+           而是「它压在底上」的结果。不合成这一层，算出来的对比度会凭空偏高。 */
+        const alpha = fgRgb[3];
+        const effFg = alpha >= 0.999 ? [fgRgb[0], fgRgb[1], fgRgb[2]]
+          : [0, 1, 2].map((k) => fgRgb[k] * alpha + mid[k] * (1 - alpha));
+        const fgL = lum255(effFg[0], effFg[1], effFg[2]);
+        const ratio = (Math.max(fgL, mid.L) + 0.05) / (Math.min(fgL, mid.L) + 0.05);
+        all[theme].push({ ratio: ratio, need: it.need, theme: theme,
+          line: it.who + " '" + it.txt + "' · fg " + it.fg + (alpha < 0.999 ? "（半透明，合成后 rgb(" + effFg.map((v) => Math.round(v)).join(", ") + ")" : "") +
+                " · 实测底 rgb(" + mid.r + ", " + mid.g + ", " + mid.b + ") L=" + mid.L.toFixed(3) +
+                " → " + ratio.toFixed(2) + ":1（需 " + it.need + "）" });
+      }
+    }
+  }
+  if (restore) await cdp.send("Runtime.evaluate", { expression: `document.documentElement.setAttribute("data-theme", "${restore}"); true;` });
+  await cdp.send("Runtime.evaluate", { expression: `window.scrollTo(0, 0); document.documentElement.style.scrollBehavior = ""; true;` });
+  await cdp.send("Runtime.evaluate", { expression: PIXEL_RESTORE });
+
+  for (const theme of ["dark", "light"]) {
+    const list = all[theme].sort((a, b) => a.ratio - b.ratio);
+    const low = list.filter((r) => r.ratio < r.need);
+    const worstTxt = list.length ? list[0].ratio.toFixed(2) + ":1" : "n/a";
+    rows.push({ name: "审计: 实测像素对比度 · " + theme, pass: low.length === 0,
+      detail: (low.length ? low.length + " / " + list.length + " 处真实底色不达标，最低 " + worstTxt
+                          : list.length + " 处（按屏幕像素实测）全部达标，最低 " + worstTxt) +
+              (list.length ? " · " + shotDims : "（本页没采到样本）") });
+    low.slice(0, 6).forEach((r) => rows.push({ name: "审计·实测像素不达标 · " + theme, pass: false, detail: r.line }));
+  }
+  return rows;
+}
+
 /* ============================ 执行 ============================ */
 const allRows = [];
 let total = 0, failed = 0;
@@ -725,6 +1110,12 @@ async function run() {
       await cdp.send("Page.navigate", { url });
       await sleep(2400);
 
+      /* 真像素对比度放在页面内断言之前跑：这时候页面还是原样的 ——
+         没有被表单灌进 54 MB 文字、没有残留 Toast、没有滚来滚去。 */
+      await cdp.send("Runtime.evaluate", { expression: PIXEL_PREP, returnByValue: true });
+      await sleep(320);
+      const pixelRows = await pixelContrast(cdp, size.mobile);
+
       const out = await cdp.send("Runtime.evaluate", { expression: SUITE, awaitPromise: true, returnByValue: true });
       const rows = [];
       if (out.exceptionDetails) {
@@ -733,6 +1124,7 @@ async function run() {
         rows.push(...out.result.value.results);
       }
       rows.push({ name: "无未捕获 JS 异常", pass: errors.length === 0, detail: errors.length ? errors[0].split("\n")[0].slice(0, 66) : "0 个" });
+      rows.push(...pixelRows);
 
       console.log(`\n=== ${file} · ${size.label} · 实测视口 ${out.result.value?.viewport ?? "?"} ===`);
       for (const row of rows) {

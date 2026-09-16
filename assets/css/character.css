@@ -1,0 +1,254 @@
+/* ==========================================================================
+   角色立绘卡（character.css）—— 只由 index.html 加载
+
+   配套：poster.css 提供 --po-* 成对的「底 + 字」令牌与 .po-board / .po-tag，
+   本文件只写立绘卡自己独有的东西（骨架屏、卷帘、问候面板的排布），
+   颜色一律引用那些令牌，不另起一套 —— 一对颜色只允许有一个出处。
+
+   两段动效，对应用户说的「动态骨架」的两种理解：
+     1. 骨架屏：立绘还没解码完时，显示头／身／腿三块会流动的占位骨架；
+     2. 动态骨架：就位后，四道与底色同色的卷帘错峰抽走（左／右交替、自上而下），
+        立绘同时从 1.04 收回到 1 —— 看上去像被一块块拼起来。
+        真正的「分层部件依次入场」需要把立绘切成带透明通道的部件图；
+        这里只有一张平图，所以用卷帘近似，接口留好了（换成部件图只需替换 .ch-curtain）。
+
+   对比度：整张卡就是一个 .po-board，卡内文字全部继承板上墨色，
+   由 tools/browser-check.mjs 的对比度审计按 WCAG AA 逐条复核。
+   ========================================================================== */
+
+/* ---------- 1. 骨架屏的灰阶：跟着印张一起翻档 ---------- */
+:root {
+  --ch-sk-base: rgba(10, 11, 10, 0.10);
+  --ch-sk-hi: rgba(10, 11, 10, 0.26);
+}
+html[data-theme="light"] {
+  --ch-sk-base: rgba(244, 241, 232, 0.12);
+  --ch-sk-hi: rgba(244, 241, 232, 0.30);
+}
+
+/* ---------- 2. 卡面 ---------- */
+.ch-card {
+  display: grid;
+  grid-template-columns: minmax(300px, 1fr) 1.05fr;
+  gap: 40px;
+  align-items: center;
+}
+.ch-card.po-board { padding: 36px 38px; }
+
+/* ---------- 3. 立绘台 ---------- */
+.ch-stage { position: relative; }
+.ch-figure {
+  position: relative; display: block; width: 100%;
+  padding: 0; margin: 0; border: 0; background: none;
+  cursor: pointer; overflow: hidden;
+  aspect-ratio: 3 / 4;
+  /* 立绘是 2048×2048 的正方图，四周大量透明留白；cover 把那圈留白裁掉，
+     只留人。用 contain 的话人会被缩成一个小不点。 */
+  -webkit-tap-highlight-color: transparent;
+}
+.ch-art-wrap {
+  position: absolute; inset: 0; display: block; overflow: hidden;
+}
+.ch-art {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%; display: block;
+  transform: scale(1.04); opacity: 0;
+  transition: transform 0.9s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.42s ease;
+}
+/* 三版立绘叠在一起交叉淡入淡出，谁出场由 data-ch-variant 说了算。
+   全身立绘是 1:1 的方图（四周大片透明留白），用 cover 把留白裁掉；
+   半身像是 1:2 的竖图，用 contain 让它整张站进来；
+   Q版是从官方 Spine 模型渲出来的 3:4 图（720×960），宽高比和台子一致，
+   本身已经是紧凑取景，contain 即可。 */
+.ch-art-full { object-fit: cover; object-position: 50% 42%; }
+.ch-art-bust { object-fit: contain; object-position: 50% 55%; }
+.ch-art-chibi { object-fit: contain; object-position: 50% 50%; }
+.ch-figure.is-ready .ch-art { transform: scale(1); }
+.ch-figure.is-ready[data-ch-variant="full"] .ch-art-full { opacity: 1; }
+.ch-figure.is-ready[data-ch-variant="bust"] .ch-art-bust { opacity: 1; }
+.ch-figure.is-ready[data-ch-variant="chibi"] .ch-art-chibi { opacity: 1; }
+
+/* ---------- 立绘切换 ---------- */
+/* 两个按钮都自带成对的底与字：未选中的是透明底，底由 .po-board 的印张提供
+   （审计会一路走到那块不透明的板），选中的是柠檬绿底配近黑字。 */
+.ch-switch { display: flex; gap: 6px; justify-content: center; margin-bottom: 12px; }
+.ch-switch-btn {
+  padding: 6px 13px; cursor: pointer;
+  font-family: var(--rhodes-mono); font-size: 0.62rem;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  background-color: transparent;
+  color: var(--po-ink);
+  -webkit-text-fill-color: var(--po-ink);
+  border: 1px solid var(--po-ink);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.ch-switch-btn.is-on {
+  background-color: var(--po-lime) !important;
+  color: var(--po-lime-ink) !important;
+  -webkit-text-fill-color: var(--po-lime-ink) !important;
+  border-color: var(--po-lime-ink);
+}
+.ch-switch-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.ch-switch-btn:focus-visible { outline: 2px solid var(--po-lime); outline-offset: 2px; }
+
+/* 水汽：她是水做的，给背后一圈冷绿的光，纯装饰 */
+.ch-stage::before {
+  content: ""; position: absolute; left: 50%; top: 54%;
+  width: 74%; aspect-ratio: 1; transform: translate(-50%, -50%);
+  border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(182, 217, 74, 0.22), transparent 68%);
+}
+
+/* ---------- 4. 骨架屏 ---------- */
+.ch-skeleton {
+  position: absolute; inset: 0; z-index: 2;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 12px;
+}
+.ch-skeleton i {
+  display: block; border-radius: 3px;
+  background-color: var(--ch-sk-base);
+  background-image: linear-gradient(100deg, transparent 32%, var(--ch-sk-hi) 50%, transparent 68%);
+  background-size: 260% 100%;
+  animation: ch-shimmer 1.3s linear infinite;
+}
+.ch-skeleton i:nth-child(1) { width: 76px; height: 76px; border-radius: 50%; }
+.ch-skeleton i:nth-child(2) { width: 148px; height: 128px; }
+.ch-skeleton i:nth-child(3) { width: 104px; height: 92px; }
+@keyframes ch-shimmer {
+  0%   { background-position: 140% 0; }
+  100% { background-position: -40% 0; }
+}
+.ch-figure.is-ready .ch-skeleton,
+.ch-figure.is-missing .ch-skeleton { display: none; }
+
+/* ---------- 5. 卷帘：错峰抽走，做出「一块块拼起来」 ---------- */
+.ch-curtain {
+  position: absolute; left: 0; width: 100%; height: 27%;
+  background-color: var(--po-plate);
+  transition: transform 0.62s cubic-bezier(0.76, 0, 0.24, 1);
+  z-index: 1;
+}
+.ch-curtain.c1 { top: 0; }
+.ch-curtain.c2 { top: 25%; }
+.ch-curtain.c3 { top: 50%; }
+.ch-curtain.c4 { top: 75%; height: 25%; }
+.ch-figure.is-ready .ch-curtain { transform: translateX(101%); }
+.ch-figure.is-ready .ch-curtain.c2,
+.ch-figure.is-ready .ch-curtain.c4 { transform: translateX(-101%); }
+.ch-figure.is-ready .ch-curtain.c1 { transition-delay: 0.05s; }
+.ch-figure.is-ready .ch-curtain.c2 { transition-delay: 0.17s; }
+.ch-figure.is-ready .ch-curtain.c3 { transition-delay: 0.29s; }
+.ch-figure.is-ready .ch-curtain.c4 { transition-delay: 0.41s; }
+/* 立绘未随仓库分发时的降级：不留破图 */
+.ch-figure.is-missing .ch-art { display: none; }
+.ch-figure.is-missing .ch-curtain { display: none; }
+
+/* 拼好之后轻轻浮着 */
+.ch-figure.is-ready .ch-art-wrap { animation: ch-float 6.5s ease-in-out 1.1s infinite; }
+@keyframes ch-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-9px); }
+}
+
+/* ---------- 6. 点击提示（自带底色，成对声明） ---------- */
+.ch-hint {
+  position: absolute; left: 50%; bottom: 12px; z-index: 3;
+  transform: translateX(-50%);
+  padding: 7px 14px; white-space: nowrap;
+  font-family: var(--rhodes-mono); font-size: 0.62rem;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  background-color: var(--po-lime) !important;
+  color: var(--po-lime-ink) !important;
+  -webkit-text-fill-color: var(--po-lime-ink) !important;
+  border: 1px solid var(--po-lime-ink);
+  transition: transform 0.25s ease;
+}
+.ch-figure:hover .ch-hint,
+.ch-figure:focus-visible .ch-hint { transform: translateX(-50%) translateY(-4px); }
+.ch-figure:focus-visible { outline: 2px solid var(--po-lime); outline-offset: 3px; }
+
+/* ---------- 7. 缺席时的说明块 ---------- */
+.ch-fallback {
+  position: absolute; inset: auto 0 0 0; z-index: 2;
+  display: none; padding: 18px 16px; text-align: center;
+}
+.ch-figure.is-missing .ch-fallback { display: block; }
+.ch-fallback b { display: block; font-size: 0.95rem; margin-bottom: 6px; }
+.ch-fallback span { font-family: var(--rhodes-mono); font-size: 0.64rem; letter-spacing: 0.1em; }
+
+/* ---------- 8. 问候面板 ---------- */
+/* 没有 JS 时问候语照常显示（HTML 里预置了第一句）；
+   有 JS 时先藏起来，等点击再浮现 —— 用 html.js 这个类做开关，
+   不必等脚本跑起来才隐藏，也就没有「先闪一下再消失」。 */
+.ch-dialogue {
+  border-left: 3px solid var(--po-lime);
+  padding: 4px 0 4px 22px;
+}
+.js .ch-dialogue { visibility: hidden; }
+.js .ch-dialogue.is-open { visibility: visible; }
+.ch-line { font-size: 1.06rem; margin: 14px 0 0; }
+.ch-line-en {
+  font-family: var(--rhodes-mono); font-size: 0.78rem; letter-spacing: 0.04em;
+  opacity: 0.86; margin: 8px 0 0;
+}
+.ch-line.is-saying   { animation: ch-line-in 0.32s ease both; }
+.ch-line-en.is-saying { animation: ch-line-in 0.32s ease 0.08s both; }
+@keyframes ch-line-in {
+  from { opacity: 0; transform: translateY(7px); }
+  to   { opacity: 1; transform: none; }
+}
+/* 她应声的时候轻轻一跳 */
+.ch-figure.is-greeting .ch-art { animation: ch-hello 0.62s cubic-bezier(0.22, 1, 0.36, 1); }
+@keyframes ch-hello {
+  0%, 100% { transform: scale(1); }
+  38%      { transform: scale(1.035); }
+}
+.ch-note {
+  margin: 20px 0 0; padding-top: 14px;
+  border-top: 1px solid var(--po-line);
+  font-family: var(--rhodes-mono); font-size: 0.64rem;
+  letter-spacing: 0.09em; line-height: 1.7;
+}
+
+/* ---------- 她的主题曲 ---------- */
+/* 透明底那颗按钮压在 .po-board 的印张上，审计会一路走到那块不透明的板；
+   播放中的那颗自带柠檬绿底与近黑字，成对声明。 */
+.ch-play {
+  display: inline-flex; align-items: center; gap: 8px;
+  margin-top: 18px; padding: 9px 16px; cursor: pointer;
+  font-family: var(--rhodes-mono); font-size: 0.66rem;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  background-color: transparent !important;
+  color: var(--po-ink) !important;
+  -webkit-text-fill-color: var(--po-ink) !important;
+  border: 1px solid var(--po-ink);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.ch-play.is-on {
+  background-color: var(--po-lime) !important;
+  color: var(--po-lime-ink) !important;
+  -webkit-text-fill-color: var(--po-lime-ink) !important;
+  border-color: var(--po-lime-ink) !important;
+}
+.ch-play:focus-visible { outline: 2px solid var(--po-lime); outline-offset: 2px; }
+
+/* ---------- 9. 响应式 ---------- */
+@media (max-width: 900px) {
+  .ch-card { grid-template-columns: 1fr; gap: 26px; }
+  .ch-card.po-board { padding: 26px 20px; }
+  .ch-stage { max-width: 340px; margin-inline: auto; }
+  .ch-hint { white-space: normal; text-align: center; }
+}
+
+/* ---------- 10. 动画偏好：一律停 ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .ch-art, .ch-curtain, .ch-hint { transition: none; }
+  .ch-skeleton i,
+  .ch-figure.is-ready .ch-art-wrap,
+  .ch-figure.is-greeting .ch-art,
+  .ch-line.is-saying, .ch-line-en.is-saying { animation: none; }
+  .ch-curtain { display: none; }
+  .ch-art { transform: none; opacity: 1; }
+  .ch-line, .ch-line-en { opacity: 1; }
+}

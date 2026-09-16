@@ -6,10 +6,12 @@
 <title>attachmenttoolarge — the Attachment Too Large Society</title>
 <meta name="description" content="A society of people whose files never fit. Real tooling for Outlook and Exchange attachment limits: shard splitting, NDR translation, a limits database — plus a monument to 20 MB.">
 <link rel="icon" href="assets/img/emblem.svg" type="image/svg+xml">
-<link rel="stylesheet" href="assets/css/style.css?v=20260915l">
-<link rel="stylesheet" href="assets/css/p3.css?v=20260915l">
-<link rel="stylesheet" href="assets/css/hud.css?v=20260915l">
-<link rel="stylesheet" href="assets/css/rhodes.css?v=20260915l">
+<link rel="stylesheet" href="assets/css/style.css?v=20260917a">
+<link rel="stylesheet" href="assets/css/p3.css?v=20260917a">
+<link rel="stylesheet" href="assets/css/hud.css?v=20260917a">
+<link rel="stylesheet" href="assets/css/rhodes.css?v=20260917a">
+<link rel="stylesheet" href="assets/css/poster.css?v=20260917a">
+<link rel="stylesheet" href="assets/css/character.css?v=20260917a">
 <script>document.documentElement.className += " js";</script>
 </head>
 <body>
@@ -282,6 +284,58 @@
     </div>
   </section>
 
+  <!-- ============ GUEST TRANSMISSION ============ -->
+  <!-- 缪尔赛思（明日方舟）。作者个人喜欢的角色，与本站虚构设定无关；
+       官方立绘不随仓库分发（见 .gitignore），缺席时走 .ch-fallback 降级。 -->
+  <section class="section">
+    <div class="container">
+      <div class="section-head reveal" data-num="01">
+        <span class="eyebrow">Guest transmission · 访客通讯</span>
+        <h2>Someone came in through the water line</h2>
+      </div>
+
+      <div class="ch-card po-board reveal">
+        <div class="ch-stage">
+          <div class="ch-switch" role="group" aria-label="立绘版本 · Figure variant">
+            <button class="ch-switch-btn is-on" type="button" data-ch-variant="full" aria-pressed="true">全身 · Full</button>
+            <button class="ch-switch-btn" type="button" data-ch-variant="bust" aria-pressed="false">半身 · Bust</button>
+            <button class="ch-switch-btn" type="button" data-ch-variant="chibi" aria-pressed="false">Q版 · Chibi</button>
+          </div>
+          <button class="ch-figure" type="button" data-ch-figure data-ch-variant="full"
+                  aria-expanded="false" aria-controls="ch-greeting">
+            <span class="ch-skeleton" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span class="ch-art-wrap" aria-hidden="true">
+              <img class="ch-art ch-art-full" data-ch-art="full" src="assets/img/muelsyse.png" alt=""
+                   width="2048" height="2048" decoding="async">
+              <img class="ch-art ch-art-bust" data-ch-art="bust" src="assets/img/muelsyse-bust.png" alt=""
+                   width="180" height="360" decoding="async">
+              <img class="ch-art ch-art-chibi" data-ch-art="chibi" src="assets/img/muelsyse-chibi.png" alt=""
+                   width="720" height="960" decoding="async">
+              <i class="ch-curtain c1"></i><i class="ch-curtain c2"></i>
+              <i class="ch-curtain c3"></i><i class="ch-curtain c4"></i>
+            </span>
+            <span class="ch-fallback">
+              <b>立绘未随仓库分发</b>
+              <span>把官方图放到 assets/img/muelsyse.png（全身）· muelsyse-bust.png（半身）· muelsyse-chibi.png（Q版）即可 · the art itself is never committed</span>
+            </span>
+            <span class="ch-hint" data-ch-hint>点一下打招呼 · Click to say hello</span>
+          </button>
+        </div>
+
+        <div class="ch-dialogue" id="ch-greeting" data-ch-greeting aria-live="polite">
+          <span class="po-tag">Incoming · 通讯接入</span>
+          <p class="ch-line" data-ch-line>博士，又在盯着一封 24.7 MB 的邮件发呆？</p>
+          <p class="ch-line-en" data-ch-line-en>Doctor — staring at a 24.7 MB mail again?</p>
+          <p class="ch-note">
+            缪尔赛思（Muelsyse）出自《明日方舟》，著作权归鹰角网络／蒙塔山所有，此处以非盈利方式引用，仅作致敬。
+            她只是作者个人喜欢的角色，与本站的虚构设定无关，也与微软无关。立绘不随仓库分发。
+          </p>
+          <button class="ch-play" type="button" data-ch-play aria-pressed="false">♪ 她的主题曲 · Through the Water Line</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ============ LATEST POSTS ============ -->
   <section class="section">
     <div class="container">
@@ -394,5 +448,6 @@
   <script src="assets/js/site-intro.js" defer></script>
   <script src="assets/js/tactical-plus.js" defer></script>
   <script src="assets/js/transitions.js" defer></script>
+  <script src="assets/js/character.js" defer></script>
 </body>
 </html>

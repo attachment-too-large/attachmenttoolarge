@@ -33,9 +33,25 @@
     "50%{transform:scale(1.16) rotate(3.2deg)}",
     "100%{transform:scale(1.30) rotate(6.4deg)}}",
 
-    /* the scrim: the photograph must never win against the text laid over it */
+    /* the scrim: the photograph must never win against the text laid over it.
+       These two alphas are measured, not guessed. tunnel.jpg runs from relative
+       luminance 0.00 (the dark centre) to 0.74 (the white walkway rings); its
+       median is 0.08.
+
+         dark theme  — bone text (L 0.87) needs the backdrop under 0.16, so even
+                       the brightest ring has to be pressed down to ~0.13.
+         light theme — ink text (L 0.01) needs the backdrop ABOVE 0.22, so this
+                       theme gets a bone wash, not a darkening.
+
+       There used to be one dark scrim for both themes. Against the pale body
+       colour the audit modelled, everything looked fine; against the photograph
+       that is actually behind the words, light-theme body copy sat at about
+       1.3:1. The audit could not see it because the photograph is painted by a
+       fixed layer that is not an ancestor of the text. */
     ".tunnel-bg::after{content:'';position:absolute;inset:0;",
-    "background:radial-gradient(120% 90% at 50% 46%, rgba(3,9,7,0.34) 0%, rgba(3,9,7,0.62) 55%, rgba(2,7,5,0.86) 100%)}",
+    "background:radial-gradient(120% 90% at 50% 46%, rgba(3,9,7,0.82) 0%, rgba(3,9,7,0.88) 55%, rgba(2,7,5,0.94) 100%)}",
+    "html[data-theme='light'] .tunnel-bg::after{",
+    "background:radial-gradient(120% 90% at 50% 46%, rgba(251,249,243,0.76) 0%, rgba(251,249,243,0.84) 55%, rgba(251,249,243,0.92) 100%)}",
 
     "@media (prefers-reduced-motion: reduce){.tunnel-bg{animation:none;transform:scale(1.12)}}"
   ].join("");

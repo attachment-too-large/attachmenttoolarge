@@ -15,13 +15,13 @@
   --panel-2: #f4f3ee;
 
   --text: #0d0d10;
-  --muted: #565a63;
+  --muted: #43464d;
   --muted-2: #868b95;
 
   --line: #0d0d10;
   --line-soft: #cfd0cc;
 
-  --accent: #1f6b56;            /* 铜绿：氧化青铜 */
+  --accent: #1a5c49;            /* 铜绿：氧化青铜 */
   --accent-soft: rgba(31, 107, 86, 0.13);
   --gold: #b08f38;              /* 黄金：桂冠与铭文 */
   --gold-soft: rgba(176, 143, 56, 0.14);
@@ -844,14 +844,24 @@ audio { accent-color: var(--accent); }
    标签可读性 —— 审计报 .tag 的文字与底板亮度相同（ratio 1.00），
    也就是"字和底一样亮"。这里用站内主题色（铜绿）做底、近黑做字，
    两种主题下都稳定在 10:1 以上，同时颜色仍然是这套视觉语言里的颜色。
+
+   第二次同一个地方踩坑（审计报 1.69）。原因不是底不对，而是只写了 color：
+   真正把颜色画到字形上的是 -webkit-text-fill-color，rhodes.css 把它单独
+   改成了骨白，于是算出来的 color 正确、屏幕上的字却是白的。底色和字色
+   现在是一对 --chip-* 变量，连填充属性一起钉死，谁也没法只改一半。
    ========================================================================== */
 .tag, .badge {
-  background-color: var(--c1, #4fd1a5) !important;
-  color: #08201a !important;
-  border-color: #08201a !important;
+  --chip-fill: var(--c1, #4fd1a5);   /* 铜绿：站内主题色 */
+  --chip-ink: #08201a;               /* 近黑 */
+  background-color: var(--chip-fill) !important;
+  color: var(--chip-ink) !important;
+  -webkit-text-fill-color: var(--chip-ink) !important;
+  border-color: var(--chip-ink) !important;
 }
 html[data-theme="dark"] .tag,
 html[data-theme="dark"] .badge {
-  background-color: var(--c1, #4fd1a5) !important;
-  color: #06150f !important;
+  --chip-ink: #06150f;
+  background-color: var(--chip-fill) !important;
+  color: var(--chip-ink) !important;
+  -webkit-text-fill-color: var(--chip-ink) !important;
 }

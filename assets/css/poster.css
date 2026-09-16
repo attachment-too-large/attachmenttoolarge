@@ -1,0 +1,395 @@
+/* ==========================================================================
+   海报层（poster.css）—— 只由 poster.html 加载，其余 14 个页面不受影响
+
+   三条参考都来自方舟直播（明日方舟 / 罗德岛）的视觉：
+     · ref_gate    层叠的玻璃告示板、四角套准框、双语微标签、超大标题、淡网格
+     · ref_disc    切片式同心仪表盘：细辐射线、扇形缺口、半调网点、柠檬绿标记
+     · ref_tunnel  同心环一圈圈退向中心，外圈压暗成暗角
+
+   这一层为什么每一条都写得这么啰嗦：
+   上一版海报版式就是被对比度审计拦下的。参考图里的玻璃板是半透明的，浅色字
+   压在亮底上，实际算出来只有 1.1～1.7:1 —— 好看，但读不了。所以这里只有一条
+   规矩，没有例外：
+
+     **凡是承载文字的盒子，底色与字色必须成对声明，而且两者都不透明。**
+
+   半透明只允许出现在不承载文字的装饰层：网格、网点、同心环、辐射线、套准标记。
+   成对的值收在下面的 --po-* 令牌里，两种主题各一套，由审计逐页复核（WCAG AA）。
+   ========================================================================== */
+
+/* ---------- 1. 配对令牌 ---------- */
+:root {
+  --po-field: #0b0d0c;          /* 海报板所在的场 */
+  --po-plate: #f4f1e8;          /* 骨白印张：字用 --po-ink，约 17:1 */
+  --po-plate-2: #e6e1d3;
+  --po-ink: #0a0b0a;
+  --po-lime: #b6d94a;           /* 警戒绿：字用 --po-lime-ink，约 11:1 */
+  --po-lime-ink: #10130f;
+  --po-on-field: #f4f1e8;       /* 直接压在场上的字，约 18:1 */
+  --po-line: rgba(244, 241, 232, 0.18);
+  --po-line-soft: rgba(244, 241, 232, 0.07);
+  --po-shadow: 12px 12px 0 rgba(0, 0, 0, 0.5);
+}
+html[data-theme="light"] {
+  --po-field: #fbf9f3;
+  --po-plate: #14161a;          /* 浅场里把印张翻成深色，配对关系不变 */
+  --po-plate-2: #0b0d0c;
+  --po-ink: #f4f1e8;
+  --po-on-field: #14161a;
+  --po-line: rgba(10, 11, 10, 0.20);
+  --po-line-soft: rgba(10, 11, 10, 0.07);
+  --po-shadow: 12px 12px 0 rgba(20, 22, 26, 0.18);
+}
+
+body.poster-page,
+html[data-theme="light"] body.poster-page {
+  background-color: var(--po-field) !important;
+  color: var(--po-on-field);
+}
+
+/* ---------- 2. 场：淡网格 + 暗角（纯装饰，无文字） ---------- */
+.po-field {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    repeating-linear-gradient(0deg, var(--po-line-soft) 0 1px, transparent 1px 64px),
+    repeating-linear-gradient(90deg, var(--po-line-soft) 0 1px, transparent 1px 64px);
+}
+.po-field::after {                       /* 暗角，把视线收到板心上 */
+  content: ""; position: absolute; inset: 0;
+  box-shadow: inset 0 0 220px 80px rgba(0, 0, 0, 0.55);
+}
+html[data-theme="light"] .po-field::after { box-shadow: inset 0 0 220px 80px rgba(60, 56, 44, 0.16); }
+
+.poster-page main { position: relative; z-index: 1; }
+
+/* ---------- 3. 双语微标签（骨白 / 绿两对，各自成对声明） ---------- */
+.po-tag {
+  display: inline-flex; align-items: baseline; gap: 8px;
+  padding: 4px 10px;
+  border: 1px solid var(--po-line);
+  font-family: var(--rhodes-mono);
+  font-size: 0.66rem; letter-spacing: 0.2em; text-transform: uppercase;
+  background-color: var(--po-plate) !important;
+  color: var(--po-ink) !important;
+  -webkit-text-fill-color: var(--po-ink) !important;
+}
+.po-tag i { font-style: normal; letter-spacing: 0.1em; opacity: 0.72; }
+.po-tag.po-tag-lime {
+  background-color: var(--po-lime) !important;
+  color: var(--po-lime-ink) !important;
+  -webkit-text-fill-color: var(--po-lime-ink) !important;
+  border-color: var(--po-lime-ink) !important;
+}
+
+/* ---------- 4. 套准标记与四角框（装饰） ---------- */
+.po-cross { position: relative; width: 18px; height: 18px; display: inline-block; }
+.po-cross::before, .po-cross::after {
+  content: ""; position: absolute; background: var(--po-line);
+}
+.po-cross::before { left: 50%; top: 0; width: 1px; height: 100%; }
+.po-cross::after { top: 50%; left: 0; height: 1px; width: 100%; }
+
+.po-corner { position: absolute; width: 24px; height: 24px; border: 2px solid var(--po-lime); }
+.po-corner.tl { top: -2px; left: -2px; border-right: 0; border-bottom: 0; }
+.po-corner.tr { top: -2px; right: -2px; border-left: 0; border-bottom: 0; }
+.po-corner.bl { bottom: -2px; left: -2px; border-right: 0; border-top: 0; }
+.po-corner.br { bottom: -2px; right: -2px; border-left: 0; border-top: 0; }
+
+/* ---------- 5. 海报板：一张印张，配四角框 ---------- */
+.po-board {
+  position: relative;
+  padding: 46px 44px 40px;
+  background-color: var(--po-plate) !important;
+  background-image: none !important;
+  color: var(--po-ink) !important;
+  border: 2px solid var(--po-ink) !important;
+  box-shadow: var(--po-shadow);
+  clip-path: polygon(0 18px, 18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%);
+  /* 板是 45° 切角的，四角框放上去会被切掉；角框因此挂在没切角的 .po-band 上。
+     overflow 收在这里，是因为板上有描边空心大字这类装饰，390px 窄屏下不许撑出横向滚动。 */
+  overflow: hidden;
+}
+/* 四角框的宿主：不许有 clip-path，否则角框自己先被切掉 */
+.po-band { position: relative; }
+/* 板上的一切都吃这块印张的墨色。
+   为什么每条都带 html[data-theme] 前缀：rhodes.css 里有
+   `html[data-theme="light"] h1, h2, … { color: var(--bone) !important }`，那是
+   (0,1,2)；只写 `.po-board h1` 只有 (0,1,1)，压不住它，标题会在浅色主题下被换成
+   另一档骨白，而这一层本该说了算。带上 [data-theme] 之后这段是 (0,2,2)，稳赢。
+   这里刻意**不写 `*`**：通配会把下面那些自己带底的胶囊一起吃掉，它们的字色
+   必须由各自那条成对的规则决定，不能被一锅端。 */
+html[data-theme] .po-board,
+html[data-theme] .po-board h1, html[data-theme] .po-board h2,
+html[data-theme] .po-board h3, html[data-theme] .po-board h4,
+html[data-theme] .po-board p, html[data-theme] .po-board li,
+html[data-theme] .po-board a, html[data-theme] .po-board .lead,
+html[data-theme] .po-board .po-mono, html[data-theme] .po-board .po-card-title {
+  color: var(--po-ink) !important;
+  -webkit-text-fill-color: var(--po-ink) !important;
+}
+/* 反向板：换成另一档印张，字色跟着一起换，同样成对 */
+html[data-theme] .po-board.po-board-dark {
+  background-color: var(--po-plate-2) !important;
+}
+
+/* 自己带底的元素：底色与字色写在同一条规则里，谁也没法只改一半。
+   这几条排在板上墨色那条之后，并且多一个 class，所以一定压得住它。 */
+html[data-theme] .po-board .po-tag {
+  background-color: var(--po-lime) !important;
+  color: var(--po-lime-ink) !important;
+  -webkit-text-fill-color: var(--po-lime-ink) !important;
+  border-color: var(--po-lime-ink) !important;
+}
+
+/* ---------- 6. 超大标题（斜切 + 硬投影，落在不透明的板上） ---------- */
+.po-display {
+  font-family: var(--rhodes-serif) !important;
+  font-weight: 400 !important;
+  text-transform: uppercase;
+  letter-spacing: -0.02em !important;
+  line-height: 0.92;
+  font-size: clamp(2.3rem, 5.6vw, 4.3rem);
+  margin: 0.12em 0 0.3em;
+  transform: skewX(-4deg);
+}
+.po-display em {
+  font-style: normal;
+  background-color: var(--po-lime) !important;
+  color: var(--po-lime-ink) !important;
+  -webkit-text-fill-color: var(--po-lime-ink) !important;
+  padding: 0 0.1em;
+}
+.po-board .po-display, .po-board .po-display * {
+  color: var(--po-ink) !important;
+  -webkit-text-fill-color: var(--po-ink) !important;
+}
+.po-board .po-display em {
+  color: var(--po-lime-ink) !important;
+  -webkit-text-fill-color: var(--po-lime-ink) !important;
+}
+
+/* 描边空心巨大数字（P3 语言），只做装饰，不承载信息 */
+.po-ghost-num {
+  position: absolute; right: 26px; bottom: 6px; z-index: 0;
+  font-family: var(--rhodes-serif);
+  font-size: clamp(4rem, 15vw, 11rem); line-height: 0.8;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  -webkit-text-stroke: 1.5px var(--po-line);
+  pointer-events: none; user-select: none;
+}
+
+/* ---------- 7. 网格与分栏 ---------- */
+.po-wrap { max-width: 1180px; margin: 0 auto; padding: 0 22px; }
+.po-cols { display: grid; grid-template-columns: 1.2fr 0.92fr; gap: 44px; align-items: center; }
+.po-cols-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+/* 主视觉右栏：仪表盘 + 正文。
+   正文放在这里而不是印张里，是因为站内播放器胶囊固定在左下角（position: fixed）：
+   印张一旦写到屏幕底部，胶囊就会压住段落——首页的做法同样是让首屏内容早早结束。
+   场上的正文用 --po-on-field，不走 hud.css 那个半透明的 --hud-dim。 */
+.po-hero-side { display: flex; flex-direction: column; gap: 16px; }
+.po-hero-side p {
+  margin: 0;
+  color: var(--po-on-field) !important;
+  -webkit-text-fill-color: var(--po-on-field) !important;
+}
+.po-spec { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+.po-spec span {
+  font-family: var(--rhodes-mono); font-size: 0.68rem; letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 6px 10px;
+  background-color: var(--po-plate-2) !important;
+  color: var(--po-ink) !important;
+  -webkit-text-fill-color: var(--po-ink) !important;
+  border: 1px solid var(--po-ink);
+}
+
+/* ---------- 8. 仪表盘：切片同心环（ref_disc） ---------- */
+.po-dial {
+  position: relative;
+  width: min(300px, 70vw); aspect-ratio: 1; margin-inline: auto;
+  border-radius: 50%;
+  background-color: var(--po-plate-2);
+  border: 2px solid var(--po-ink);
+  overflow: hidden;
+}
+.po-dial > i { position: absolute; inset: 0; display: block; border-radius: 50%; }
+
+/* 扇形切片：两种深色交替，中间留出细缝 */
+.po-dial .po-wedge {
+  background: conic-gradient(
+    from -8deg,
+    #0a0c0b 0 22deg, #171a19 22deg 26deg,
+    #0a0c0b 26deg 70deg, #171a19 70deg 74deg,
+    #0a0c0b 74deg 122deg, #171a19 122deg 126deg,
+    #0a0c0b 126deg 170deg, #171a19 170deg 175deg,
+    #0a0c0b 175deg 226deg, #171a19 226deg 231deg,
+    #0a0c0b 231deg 278deg, #171a19 278deg 283deg,
+    #0a0c0b 283deg 330deg, #171a19 330deg 335deg,
+    #0a0c0b 335deg 360deg);
+  -webkit-mask: radial-gradient(circle, transparent 0 33%, #000 33.5% 100%);
+  mask: radial-gradient(circle, transparent 0 33%, #000 33.5% 100%);
+}
+/* 细辐射刻度线 */
+.po-dial .po-hair {
+  background: repeating-conic-gradient(from 0deg,
+    rgba(244, 241, 232, 0.55) 0 0.3deg, transparent 0.3deg 2.4deg);
+  -webkit-mask: radial-gradient(circle, transparent 0 40%, #000 40.4% 63%, transparent 63.4%);
+  mask: radial-gradient(circle, transparent 0 40%, #000 40.4% 63%, transparent 63.4%);
+  opacity: 0.5;
+}
+/* 同心导引环 */
+.po-dial .po-rings {
+  background: repeating-radial-gradient(circle,
+    rgba(244, 241, 232, 0.30) 0 1px, transparent 1px 10px);
+  -webkit-mask: radial-gradient(circle, transparent 0 34%, #000 34.5% 100%);
+  mask: radial-gradient(circle, transparent 0 34%, #000 34.5% 100%);
+  opacity: 0.55;
+}
+/* 切掉一块扇形：用印张色压回去，做出「缺角」 */
+.po-dial .po-notch {
+  background: conic-gradient(from -20deg,
+    transparent 0 14deg, var(--po-plate-2) 14deg 33deg, transparent 33deg 360deg);
+  -webkit-mask: radial-gradient(circle, transparent 0 30%, #000 30.5% 100%);
+  mask: radial-gradient(circle, transparent 0 30%, #000 30.5% 100%);
+}
+/* 柠檬绿标记点，只做装饰 */
+.po-dial .po-mark {
+  inset: auto; width: 9px; height: 9px; border-radius: 0;
+  background-color: var(--po-lime);
+  transform-origin: 50% 50%;
+}
+.po-dial .po-mark.m1 { top: 17%; left: 62%; }
+.po-dial .po-mark.m2 { top: 63%; left: 20%; }
+.po-dial .po-mark.m3 { top: 78%; left: 66%; }
+.po-dial .po-mark.m4 { top: 30%; left: 16%; }
+
+/* 盘心的信息块：不透明底 + 成对字色 */
+.po-dial-core {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: 47%; z-index: 2; text-align: center;
+  padding: 14px 10px;
+  background-color: var(--po-lime) !important;
+  color: var(--po-lime-ink) !important;
+  -webkit-text-fill-color: var(--po-lime-ink) !important;
+  border: 2px solid var(--po-lime-ink);
+}
+.po-dial-core * {
+  color: var(--po-lime-ink) !important;
+  -webkit-text-fill-color: var(--po-lime-ink) !important;
+}
+.po-dial-core b { display: block; font-family: var(--rhodes-serif); font-size: 1.5rem; line-height: 1; }
+.po-dial-core span { font-family: var(--rhodes-mono); font-size: 0.6rem; letter-spacing: 0.16em; text-transform: uppercase; }
+
+/* ---------- 9. 层叠告示板（ref_gate） ---------- */
+.po-stack { position: relative; padding: 16px 0 0; }
+.po-stack .po-board { margin-bottom: -14px; }
+.po-stack .po-board:nth-child(1) { margin-left: 0; margin-right: 34px; }
+.po-stack .po-board:nth-child(2) { margin-left: 20px; margin-right: 14px; }
+.po-stack .po-board:nth-child(3) { margin-left: 40px; margin-right: 0; }
+.po-stack .po-board { transition: transform 0.3s ease; }
+.po-stack .po-board:hover { transform: translateX(6px); }
+.po-card-title {
+  font-family: var(--rhodes-label) !important;
+  font-size: 1.05rem; letter-spacing: 0.06em; text-transform: uppercase;
+  margin: 12px 0 6px;
+}
+.po-mono {
+  font-family: var(--rhodes-mono); font-size: 0.68rem;
+  letter-spacing: 0.16em; text-transform: uppercase;
+}
+
+/* 半调网点纸（装饰） */
+.po-halftone {
+  position: absolute; right: 18px; bottom: 16px; width: 108px; height: 62px;
+  background-image: radial-gradient(currentColor 1.3px, transparent 1.4px);
+  background-size: 7px 7px;
+  opacity: 0.28; pointer-events: none;
+}
+
+/* ---------- 10. 同心隧道（ref_tunnel）：整条横向色带 ---------- */
+/* 隧道在两个主题下都必须是暗的：参考图里它是「一圈圈退进黑暗」，环是骨白的。
+   这里不能用 --po-plate-2 —— 深色主题下那一档是浅骨白，浅环压在浅底上等于没有环，
+   整条色带会糊成一片灰。底色因此写死，环色也写死。 */
+.po-tunnel {
+  position: relative; height: 190px; overflow: hidden;
+  border-top: 2px solid rgba(244, 241, 232, 0.22);
+  border-bottom: 2px solid rgba(244, 241, 232, 0.22);
+  background-color: #0b0d0c;
+}
+.po-tunnel i {
+  position: absolute; left: 50%; top: 50%; width: 78px; height: 78px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%; border: 2px solid rgba(244, 241, 232, 0.5);
+}
+.po-tunnel i:nth-child(2) { width: 156px; height: 156px; opacity: 0.82; }
+.po-tunnel i:nth-child(3) { width: 244px; height: 244px; opacity: 0.64; }
+.po-tunnel i:nth-child(4) { width: 342px; height: 342px; opacity: 0.46; }
+.po-tunnel i:nth-child(5) { width: 452px; height: 452px; opacity: 0.3; }
+.po-tunnel i:nth-child(6) { width: 576px; height: 576px; opacity: 0.18; }
+.po-tunnel i:nth-child(7) { width: 714px; height: 714px; opacity: 0.1; }
+.po-tunnel::after {
+  content: ""; position: absolute; inset: 0;
+  background: radial-gradient(circle at 50% 50%, transparent 0 12%, rgba(0, 0, 0, 0.72) 72%);
+}
+
+/* ---------- 11. 页边读数 ---------- */
+.po-readout {
+  display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px;
+  padding: 14px 0 0;
+  font-family: var(--rhodes-mono); font-size: 0.66rem;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--po-on-field);
+}
+
+/* ---------- 11b. 按钮：每一条都自报家门，不靠继承 ---------- */
+html[data-theme] .po-cta {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 13px 20px; text-decoration: none;
+  font-family: var(--rhodes-mono); font-size: 0.74rem;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  background-color: var(--po-lime) !important;
+  color: var(--po-lime-ink) !important;
+  -webkit-text-fill-color: var(--po-lime-ink) !important;
+  border: 2px solid var(--po-lime-ink);
+  box-shadow: 5px 5px 0 rgba(0, 0, 0, 0.45);
+}
+/* 印张上的实心按钮要再声明一次：板内墨色那条是 (0,2,2)，比上面这条高。 */
+html[data-theme] .po-board .po-cta {
+  background-color: var(--po-lime) !important;
+  color: var(--po-lime-ink) !important;
+  -webkit-text-fill-color: var(--po-lime-ink) !important;
+  border-color: var(--po-lime-ink) !important;
+}
+/* 幽灵按钮是透明底，所以它的字色必须跟着**身后那块真正的底**走。
+   起初这里写的是 --po-on-field（场上的字色），可按钮其实落在印张上：深色主题里
+   场上的字是骨白、印张上的墨是近黑，于是字和底一样白，审计直接报 1.00:1。 */
+html[data-theme] .po-cta.po-cta-ghost {
+  background-color: transparent !important;
+  color: var(--po-on-field) !important;
+  -webkit-text-fill-color: var(--po-on-field) !important;
+  border-color: currentColor;
+  box-shadow: none;
+}
+html[data-theme] .po-board .po-cta.po-cta-ghost {
+  color: var(--po-ink) !important;
+  -webkit-text-fill-color: var(--po-ink) !important;
+}
+.po-cta-row { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 24px; }
+
+/* ---------- 12. 响应式 ---------- */
+@media (max-width: 900px) {
+  .po-cols { grid-template-columns: 1fr; gap: 30px; }
+  .po-cols-3 { grid-template-columns: 1fr; }
+  .po-board { padding: 30px 22px 28px; }
+  .po-stack .po-board:nth-child(1) { margin-right: 18px; }
+  .po-stack .po-board:nth-child(2) { margin-left: 10px; margin-right: 8px; }
+  .po-stack .po-board:nth-child(3) { margin-left: 20px; }
+  .po-tunnel { height: 130px; }
+}
+
+/* ---------- 13. 动画偏好：一律停 ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .po-stack .po-board { transition: none; }
+  .po-stack .po-board:hover { transform: none; }
+}
