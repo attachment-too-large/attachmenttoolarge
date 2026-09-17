@@ -7,7 +7,7 @@ are **not** in the repository, and that is deliberate.
 |---|---|---|
 | `muelsyse.png` | the official standing illustration (*立绘*) | 2048×2048 |
 | `muelsyse-bust.png` | the official bust portrait (*半身像*) | 180×360 |
-| `muelsyse-chibi.png` | the chibi from the official *Arknights Festival* welcome card | 474×635 |
+| `muelsyse-chibi.png` | the chibi from the official *Arknights Festival* welcome card, background cut out | 474×635 |
 | `muelsyse-jp-cn_033.mp3` | her Japanese line for 进驻设施 — "Let's really decorate this place" | 34 KB |
 | `muelsyse-jp-cn_032.mp3` | her Japanese line for 行动失败 — "I got my mirages to lead them off" | 30 KB |
 | `muelsyse-jp-cn_043.mp3` | her Japanese line for 生日 — "imagining what you might've been like" | 184 KB |
@@ -21,6 +21,35 @@ festival banner, a QR code and a Xiaohongshu repost watermark; the crop keeps th
 paper plane and the *MUELSYSE* name plate and drops everything below the orange rule, which removes
 the QR code and the watermark together. The crop is exactly 3:4, the ratio of the art box.
 
+Then the poster's blue background was cut away so she sits on the card the way the other two
+figures do. That is a segmentation, not a colour key: the background is not only blue, it also has
+yellow and green shapes in the character's own palette, so keying on blue either leaves those
+behind or eats her leaf ornaments. What works, in order:
+
+1. **Blur the decision image by 1px, then region-grow from the border with a local tolerance.** The
+   fill compares each pixel with the one it came from, so a gradient is followed rather than
+   matched against a fixed colour. The blur is what makes it work: the poster's halftone dots dam
+   the growth, and behind a dam a whole field of blue never reaches the border and survives as a
+   slab. Tolerance is critical and was measured, not guessed — at 1px blur the silhouette holds at
+   14 and fails at 18, and 18 is not "a bit worse", it is her entire body gone.
+2. **Erode to the solid core, then grow back only into non-blue pixels.** Growth stops outside her
+   dark outline, which leaves a rim of background blue clinging to her; growing back through
+   non-blue pixels drops the rim while returning her own edges.
+3. **Keep the largest blob.** That is what discards the name plate, the game logo and the loose
+   confetti — and, once the rim is gone, the yellow stars that were hanging off it too.
+4. **Absorb any remaining blue region of 50px or more.** Enclosed pockets ringed by hair can never
+   be reached by connectivity. Blue is safe as a test here precisely because she has none: her hair
+   is grey-brown, her uniform white-grey-black, her ornaments olive and orange.
+5. **Feather by 1px and decontaminate.** Edge pixels are a blend of her and the blue, so their
+   colour is pulled back toward hers before the alpha is written; without it the cut-out carries a
+   faint blue penumbra.
+
+Three small background fragments survive near the paper plane's lower-left edge, in the one place
+where the poster's yellow-green band runs right up against the wing. They were left rather than
+chased: every patch tried there landed on the wing itself and punched a hole in it, which is worse
+than the fragment. Dropping the paper plane as well would remove them, at the cost of a plainer
+picture.
+
 **Copyright.** The character, all three images and all three voice clips are from *Arknights*
 (明日方舟) and belong to Hypergryph / Studio Montagne. They are used here non-commercially, with
 attribution, because the author of this site likes the character — nothing more than that. The
@@ -30,12 +59,12 @@ site is a work of fiction and is not affiliated with the rights holders.
 history keeps the repository to the site's own work; all six files are still published, as release
 assets, so the deployed page can show and play them.
 
-**How the page refers to them.** The tag is now `character-art-v2` on both hosts — v1 still exists
+**How the page refers to them.** The tag is now `character-art-v3` on both hosts — v1 still exists
 and still works, but the chibi changed in v2 and a release asset cannot be overwritten in place, so
 the whole set moved together. Each `<img>` carries the Gitee URL as its `src` and the rest of the
 chain in `data-ch-alt`:
 
-1. **Gitee** — `machinekyansauto3-operator/attachmenttoolarge-assets`, release `character-art-v2`.
+1. **Gitee** — `machinekyansauto3-operator/attachmenttoolarge-assets`, release `character-art-v3`.
    Served as `image/png` and `audio/mpeg` with no referer check, and reachable from inside China.
 2. **GitHub** — `attachment-too-large/attachmenttoolarge`, same tag. Fine from outside China, but
    the download redirects to the objects CDN, which is often unreachable from inside it.
@@ -68,12 +97,12 @@ inventing her.
 
 ```sh
 # GitHub — one call per file, all under the same tag
-node tools/publish-asset.mjs assets/img/muelsyse.png            --tag character-art-v2 --title "Muelsyse character assets" --notes docs/CHARACTER-ART.md
-node tools/publish-asset.mjs assets/img/muelsyse-bust.png       --tag character-art-v2 --title "Muelsyse character assets" --notes docs/CHARACTER-ART.md
-node tools/publish-asset.mjs assets/img/muelsyse-chibi.png      --tag character-art-v2 --title "Muelsyse character assets" --notes docs/CHARACTER-ART.md
-node tools/publish-asset.mjs assets/audio/muelsyse-jp-cn_033.mp3 --tag character-art-v2 --title "Muelsyse character assets" --notes docs/CHARACTER-ART.md
-node tools/publish-asset.mjs assets/audio/muelsyse-jp-cn_032.mp3 --tag character-art-v2 --title "Muelsyse character assets" --notes docs/CHARACTER-ART.md
-node tools/publish-asset.mjs assets/audio/muelsyse-jp-cn_043.mp3 --tag character-art-v2 --title "Muelsyse character assets" --notes docs/CHARACTER-ART.md
+node tools/publish-asset.mjs assets/img/muelsyse.png            --tag character-art-v3 --title "Muelsyse character assets" --notes docs/CHARACTER-ART.md
+node tools/publish-asset.mjs assets/img/muelsyse-bust.png       --tag character-art-v3 --title "Muelsyse character assets" --notes docs/CHARACTER-ART.md
+node tools/publish-asset.mjs assets/img/muelsyse-chibi.png      --tag character-art-v3 --title "Muelsyse character assets" --notes docs/CHARACTER-ART.md
+node tools/publish-asset.mjs assets/audio/muelsyse-jp-cn_033.mp3 --tag character-art-v3 --title "Muelsyse character assets" --notes docs/CHARACTER-ART.md
+node tools/publish-asset.mjs assets/audio/muelsyse-jp-cn_032.mp3 --tag character-art-v3 --title "Muelsyse character assets" --notes docs/CHARACTER-ART.md
+node tools/publish-asset.mjs assets/audio/muelsyse-jp-cn_043.mp3 --tag character-art-v3 --title "Muelsyse character assets" --notes docs/CHARACTER-ART.md
 ```
 
 The tag is `character-art-vN`, not `v*`, so the CLI release workflow is not triggered. **A release

@@ -822,8 +822,12 @@ const SUITE = `(async () => {
         const file1 = (voice.currentSrc || "").split("/").pop();
         ok("点 Q 版会说日语", spoke,
            spoke ? "走了 " + Math.round(voice.currentTime * 100) / 100 + "s · " + file1 : "点了没出声 · src=" + (voice.src || "空"));
-        ok("日配也走 release 附件", /character-art-v2/.test(voice.currentSrc || voice.src || ""),
-           (voice.currentSrc || voice.src || "").replace("https://", "").split("/").slice(0, 2).join("/"));
+        /* 不写死标签号：素材换一代就换一个 tag（release 附件不能覆盖），
+           断言该认的是"走的是 release 附件这条路"，不是某一个具体编号。 */
+        const voiceFrom = voice.currentSrc || voice.src || "";
+        const viaRelease = voiceFrom.indexOf("character-art-v") !== -1 && voiceFrom.indexOf("/releases/download/") !== -1;
+        ok("日配也走 release 附件", viaRelease,
+           voiceFrom.replace("https://", "").split("/").slice(0, 5).join("/"));
         /* 再点一下：换下一句，就该换下一段录音。不假设从第几句开始 ——
            前面那几条断言已经点过她了，idx 走到哪儿都有可能。 */
         chFig.click();

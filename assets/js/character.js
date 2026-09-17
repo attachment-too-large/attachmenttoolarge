@@ -131,8 +131,8 @@
      静音开关（左下角那颗 ♪）是"全部都别出声"的意思，所以它关着的时候不播 ——
      一个说自己静音了的站点，不该因为点了角色就突然说话。 */
   var VOICE_BASES = [
-    "https://gitee.com/machinekyansauto3-operator/attachmenttoolarge-assets/releases/download/character-art-v2/",
-    "https://github.com/attachment-too-large/attachmenttoolarge/releases/download/character-art-v2/"
+    "https://gitee.com/machinekyansauto3-operator/attachmenttoolarge-assets/releases/download/character-art-v3/",
+    "https://github.com/attachment-too-large/attachmenttoolarge/releases/download/character-art-v3/"
   ];
   var voiceEl = null, voiceQueue = [], voiceNext = 0;
 
