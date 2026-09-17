@@ -51,14 +51,20 @@
       { zh: "如果还有事情在困扰着你，就先把它丢到一旁吧，来尝尝这个“橙味风暴”。",
         en: "If anything's bothering you, put it to one side for now. Here, try this out, 'Orange Storm'." }
     ],
-    /* Q版小人：她上了战场、也过生日的那一面 */
+    /* Q版小人：她上了战场、也过生日的那一面。
+       这三句每句都配了官方日配，点一下就会说出来（voice 是 release 附件的文件名）。
+       文件名里的 cn_0NN 是**语音记录里的编号，不是"中文"**：PRTS 的路径
+       voice/ 是日配、voice_cn/ 才是中文配音，两个目录下的文件同名。 */
     chibi: [
       { zh: "好好装修一下，一定能变得很舒适。",
-        en: "Let's really decorate this place. It'll be cozy in no time, promise." },
+        en: "Let's really decorate this place. It'll be cozy in no time, promise.",
+        voice: "muelsyse-jp-cn_033.mp3" },
       { zh: "幻象引开他们了，我们走这边吧。",
-        en: "I got my mirages to lead them off. We'll go this way." },
+        en: "I got my mirages to lead them off. We'll go this way.",
+        voice: "muelsyse-jp-cn_032.mp3" },
       { zh: "嗯？嗯……没什么，只是在想刚刚诞生的你大概会是什么模样。",
-        en: "Hm? Mm... nothing, I'm just imagining what you might've been like when you were born." }
+        en: "Hm? Mm... nothing, I'm just imagining what you might've been like when you were born.",
+        voice: "muelsyse-jp-cn_043.mp3" }
     ]
   };
 
@@ -120,6 +126,50 @@
     el.classList.add(cls);
   }
 
+  /* ---------- 她的声音：官方日配，跟立绘一样不入库 ----------
+     音频和立绘走同一套办法：release 附件，Gitee 一份、GitHub 一份，取不到就试下一个。
+     静音开关（左下角那颗 ♪）是"全部都别出声"的意思，所以它关着的时候不播 ——
+     一个说自己静音了的站点，不该因为点了角色就突然说话。 */
+  var VOICE_BASES = [
+    "https://gitee.com/machinekyansauto3-operator/attachmenttoolarge-assets/releases/download/character-art-v2/",
+    "https://github.com/attachment-too-large/attachmenttoolarge/releases/download/character-art-v2/"
+  ];
+  var voiceEl = null, voiceQueue = [], voiceNext = 0;
+
+  function sayAloud(file) {
+    if (!file) return;
+    if (window.ATTMusic && typeof window.ATTMusic.isMuted === "function" && window.ATTMusic.isMuted()) return;
+    if (!voiceEl) {
+      /* 挂在 DOM 上，不用游离的 new Audio()。唱片页那个"播放时盘不转"的毛病，
+         根因就是播放器是游离元素、外面用 querySelector 找不到它 —— 同一个坑不踩第二次，
+         何况自检要能看见这个元素才验得了"点了真的出声"。 */
+      voiceEl = new Audio();
+      voiceEl.preload = "auto";
+      voiceEl.hidden = true;
+      voiceEl.setAttribute("data-ch-voice", "");
+      document.body.appendChild(voiceEl);
+      /* 一条地址取不到就试下一条；两条都断了就安静地算了 —— 没听到声音，
+         不该顺带弹个错误出来。 */
+      voiceEl.addEventListener("error", function () {
+        if (voiceNext < voiceQueue.length) { voiceEl.src = voiceQueue[voiceNext++]; playVoice(); }
+      });
+      voiceEl.addEventListener("playing", function () { figure.classList.add("is-speaking"); });
+      voiceEl.addEventListener("ended", function () { figure.classList.remove("is-speaking"); });
+      voiceEl.addEventListener("pause", function () { figure.classList.remove("is-speaking"); });
+    }
+    voiceQueue = VOICE_BASES.map(function (b) { return b + file; });
+    voiceNext = 1;
+    voiceEl.pause();
+    voiceEl.src = voiceQueue[0];
+    playVoice();
+  }
+  function playVoice() {
+    var p = voiceEl.play();
+    /* 浏览器可能因为"用户没有交互过"直接拒绝；点了才响的东西一般不会，
+       真被拒了就当作没这回事。 */
+    if (p && p.catch) p.catch(function () { /* ignored on purpose */ });
+  }
+
   function say() {
     if (!panel || !lineEl) return;
     var first = !panel.classList.contains("is-open");
@@ -138,6 +188,7 @@
     replay(lineEl, "is-saying");
     if (enEl) { enEl.textContent = line.en; replay(enEl, "is-saying"); }
     replay(figure, "is-greeting");
+    sayAloud(line.voice);
   }
 
   figure.addEventListener("click", say);
@@ -153,11 +204,14 @@
       b.classList.toggle("is-on", on);
       b.setAttribute("aria-pressed", on ? "true" : "false");
     });
-    /* 问候面板已经开着的话，立刻换成这一版的话，别让上一版的话挂着。 */
+    /* 问候面板已经开着的话，立刻换成这一版的话，别让上一版的话挂着。
+       换了版式也要把这一版第一句的配音念出来 —— 否则切到 Q 版时
+       屏幕上写着日语台词，耳朵里却是上一版留下的空白。 */
     if (panel && panel.classList.contains("is-open") && LINES[next][0]) {
       idx = 0;
       if (lineEl) { lineEl.textContent = LINES[next][0].zh; replay(lineEl, "is-saying"); }
       if (enEl) { enEl.textContent = LINES[next][0].en; replay(enEl, "is-saying"); }
+      sayAloud(LINES[next][0].voice);
     }
   }
 

@@ -801,6 +801,55 @@ const SUITE = `(async () => {
     } else {
       ok("卡上没有曲子按钮（跳过）", true, "跳过");
     }
+
+    /* ---------- 她的日配：点了要真的出声，静音时不许出声 ----------
+       断言"音频元素真的在走"（currentTime 前进），不是"元素存在"。
+       播放器是点第一下时才建的，所以先点再找 —— 这也正是断言的价值：
+       游离的 new Audio() 外面根本查不到，唱片页的"盘不转"就是那么来的。 */
+    const chibiBtn = document.querySelector('[data-ch-variant="chibi"]');
+    if (chibiBtn && chFig) {
+      chibiBtn.click();
+      chFig.click();                                   // 第一句：进驻设施
+      await until(() => document.querySelector("audio[data-ch-voice]"), 5000, 150);
+      const voice = document.querySelector("audio[data-ch-voice]");
+      if (!voice) {
+        ok("点 Q 版会建出日配播放器", false, "点了之后页面上没有 audio[data-ch-voice]");
+      } else {
+        ok("日配播放器挂在 DOM 上（不是游离元素）", !!voice.parentNode,
+           voice.parentNode ? "父节点 " + voice.parentNode.tagName : "无父节点 —— 又踩了那个坑");
+        await until(() => voice.currentTime > 0 && !voice.paused, 6000, 150);
+        const spoke = voice.currentTime > 0 && !voice.paused;
+        const file1 = (voice.currentSrc || "").split("/").pop();
+        ok("点 Q 版会说日语", spoke,
+           spoke ? "走了 " + Math.round(voice.currentTime * 100) / 100 + "s · " + file1 : "点了没出声 · src=" + (voice.src || "空"));
+        ok("日配也走 release 附件", /character-art-v2/.test(voice.currentSrc || voice.src || ""),
+           (voice.currentSrc || voice.src || "").replace("https://", "").split("/").slice(0, 2).join("/"));
+        /* 再点一下：换下一句，就该换下一段录音。不假设从第几句开始 ——
+           前面那几条断言已经点过她了，idx 走到哪儿都有可能。 */
+        chFig.click();
+        await until(() => (voice.currentSrc || "").split("/").pop() !== file1, 5000, 150);
+        const file2 = (voice.currentSrc || "").split("/").pop();
+        /* 不用正则：这一整段是模板字面量，\d 会被吞成 d，写 /_0\d\d/ 只会白红一次。
+           需要反斜杠的表达式在这里一律改成字符串比较。 */
+        const looksRight = file2.indexOf("muelsyse-jp-cn_") === 0 && file2.slice(-4) === ".mp3";
+        ok("换一句就换一段配音", file2 !== file1 && looksRight,
+           file2 !== file1 ? file1 + " → " + file2 : "还是同一段：" + file2);
+
+        /* 静音契约：说好静音就不许出声 */
+        if (window.ATTMusic && typeof ATTMusic.mute === "function") {
+          ATTMusic.mute(true);
+          voice.pause(); voice.currentTime = 0;
+          await wait(200);
+          chFig.click();
+          await wait(1200);
+          ok("静音时她不出声", voice.paused || voice.currentTime === 0,
+             "currentTime=" + Math.round(voice.currentTime * 100) / 100 + " · paused=" + voice.paused + " · muted=" + ATTMusic.isMuted());
+          ATTMusic.mute(false);
+        }
+      }
+    } else {
+      ok("卡上没有日配（跳过）", true, "跳过");
+    }
   } else {
     ok("本页无角色立绘卡", true, "跳过");
   }

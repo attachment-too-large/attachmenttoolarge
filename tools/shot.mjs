@@ -116,6 +116,17 @@ async function run() {
   });
   await sleep(900);
 
+  /* 等图片真的到齐再截。外站的立绘有 1.6 MB，固定等 900 ms 会截到骨架屏 ——
+     截出来是"我没看到角色"，其实是图还在路上，白白让人以为坏了。 */
+  for (let i = 0; i < 20; i++) {
+    const pending = await cdp.send("Runtime.evaluate", {
+      expression: `[...document.images].filter(function (i) { return !i.complete; }).length`,
+      returnByValue: true
+    });
+    if (!pending.result.value) break;
+    await sleep(500);
+  }
+
   /* 截图前先跑一段 JS，用来把交互态摆好（第 8 个参数）。 */
   const before = process.argv[8];
   if (before) {

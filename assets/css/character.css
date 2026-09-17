@@ -49,6 +49,11 @@ html[data-theme="light"] {
 .ch-art-wrap {
   position: absolute; inset: 0; display: block; overflow: hidden;
 }
+/* 正在念日配：给小人一圈柠檬绿的光。听得见，也要看得见 —— 否则声音小一点
+   就会被当成"点了没反应"。颜色与站内其它柠檬绿一致（#c6e04a）。 */
+.ch-figure.is-speaking .ch-art-wrap {
+  box-shadow: inset 0 0 0 2px #c6e04a, inset 0 0 34px -6px rgba(198, 224, 74, 0.55);
+}
 .ch-art {
   position: absolute; inset: 0;
   width: 100%; height: 100%; display: block;
