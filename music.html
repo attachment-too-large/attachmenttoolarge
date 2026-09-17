@@ -353,7 +353,7 @@
   </div>
 </footer>
 <script src="assets/js/vendor/three.min.js"></script>
-<script src="assets/js/record-scene.js"></script>
+<script src="assets/js/record-scene.js?v=20260917b"></script>
 <script src="assets/js/lyrics.js"></script>
 <script src="assets/js/recordings.js"></script>
 <script src="assets/js/music.js"></script>
@@ -469,15 +469,19 @@
     var els = [], shown = null;
 
     /* one lyric line per equal slice of the recording, so it moves with the song,
-       and the window scrolls itself so the live line stays where you are looking */
+       and the window keeps the live line in the middle of what you are looking at.
+       It used to scroll only when the live line came within 12px of an edge, so the
+       list sat perfectly still for eight or nine lines at a time and read as "the
+       words are not following the song" even though the highlight was moving. */
     function highlight(i) {
       els.forEach(function (el, k) { el.classList.toggle("is-active", k === i); });
       var live = els[i];
       if (!live || !host.scrollHeight) return;
       var box = host.getBoundingClientRect(), line = live.getBoundingClientRect();
-      if (line.top < box.top + 12 || line.bottom > box.bottom - 12) {
-        host.scrollTop += (line.top - box.top) - box.height / 2 + line.height / 2;
-      }
+      var target = host.scrollTop + (line.top - box.top) - box.height / 2 + line.height / 2;
+      target = Math.max(0, Math.min(target, host.scrollHeight - host.clientHeight));
+      if (Math.abs(target - host.scrollTop) < 2) return;
+      host.scrollTop = target;
     }
 
     function render(id) {

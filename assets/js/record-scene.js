@@ -160,17 +160,27 @@
     return m;
   }
 
-  /* card layout: three bands, with gaps, a couple of pale ones, as in the reference */
+  /* card layout: three bands, evenly divided, as in the reference — but evenly.
+     The first version put the runs at hand-picked angles taken from the photograph,
+     so no two gaps matched and the whole face read as lopsided once it turned.
+     Each band is now divided into equal arcs with equal gaps; the counts differ per
+     band (6 / 5 / 4) so the bands interlock instead of lining up like a dartboard. */
+  function evenRuns(n, gap) {
+    var out = [], step = 360 / n;
+    for (var i = 0; i < n; i++) out.push([i * step + gap / 2, (i + 1) * step - gap / 2]);
+    return out;
+  }
   var bands = [
-    { r: 9.05, w: 1.15, y: TOP + 0.02, mat: matCardB, runs: [[8, 96], [104, 168], [176, 262], [270, 352]] },
-    { r: 7.55, w: 1.35, y: TOP + 0.03, mat: matCardC, runs: [[14, 120], [132, 214], [226, 300], [312, 366]] },
-    { r: 6.05, w: 1.15, y: TOP + 0.04, mat: matCardA, runs: [[0, 74], [86, 190], [202, 286], [298, 344]] }
+    { r: 9.05, w: 1.15, y: TOP + 0.02, mat: matCardB, runs: evenRuns(6, 10) },
+    { r: 7.55, w: 1.35, y: TOP + 0.03, mat: matCardC, runs: evenRuns(5, 12) },
+    { r: 6.05, w: 1.15, y: TOP + 0.04, mat: matCardA, runs: evenRuns(4, 14) }
   ];
   bands.forEach(function (b) {
     b.runs.forEach(function (run) { arcCard(run[0], run[1], b.r, b.w, b.mat, b.y); });
   });
-  arcCard(20, 74, 9.05, 1.15, matPale, TOP + 0.021);
-  arcCard(196, 244, 7.55, 1.35, matPale, TOP + 0.031);
+  /* 两块浅色卡片，正好相隔 180°：单独放一块就会让整张盘看起来偏重一边 */
+  arcCard(5, 55, 9.05, 1.15, matPale, TOP + 0.021);
+  arcCard(185, 235, 9.05, 1.15, matPale, TOP + 0.021);
 
   /* the pale wedge with its radial lines (lower left) */
   (function wedge() {
@@ -220,9 +230,12 @@
     platter.add(sq);
   });
 
-  /* the dark plate behind the object, the salmon strip, the pale form, the spindle */
+  /* the dark plate behind the object, the salmon strip, the pale form, the spindle.
+     The plate and everything standing on it used to sit at z = +0.55 / +0.85, i.e.
+     deliberately off the platter's centre — which is what made the whole object read
+     as lopsided. The centrepiece now stands on the centre. */
   var plate = new THREE.Mesh(new THREE.CylinderGeometry(4.35, 4.35, 0.55, 96), matPlate);
-  plate.position.set(0, TOP + 0.28, 0.55);
+  plate.position.set(0, TOP + 0.28, 0);
   plate.castShadow = true; plate.receiveShadow = true;
   platter.add(plate);
 
@@ -242,24 +255,24 @@
     color: 0xdcdcd8, roughness: 0.62, metalness: 0.12, flatShading: true, envMapIntensity: 0.5
   });
   var daisLo = new THREE.Mesh(new THREE.CylinderGeometry(2.30, 2.55, 0.55, 6), matDais);
-  daisLo.position.set(0, TOP + 0.34, 0.85);
+  daisLo.position.set(0, TOP + 0.34, 0);
   daisLo.rotation.y = 30 * DEG;
   daisLo.castShadow = true; daisLo.receiveShadow = true;
   platter.add(daisLo);
 
   var daisHi = new THREE.Mesh(new THREE.CylinderGeometry(1.62, 1.86, 0.42, 6), matDais);
-  daisHi.position.set(0, TOP + 0.82, 0.85);
+  daisHi.position.set(0, TOP + 0.82, 0);
   daisHi.rotation.y = 30 * DEG;
   daisHi.castShadow = true; daisHi.receiveShadow = true;
   platter.add(daisHi);
 
   var ring = new THREE.Mesh(new THREE.TorusGeometry(1.95, 0.045, 8, 6), matLime);
   ring.rotation.x = 90 * DEG;
-  ring.position.set(0, TOP + 0.62, 0.85);
+  ring.position.set(0, TOP + 0.62, 0);
   platter.add(ring);
 
   var spindle = new THREE.Mesh(new THREE.CylinderGeometry(0.30, 0.30, 0.5, 6), matHole);
-  spindle.position.set(0, TOP + 1.05, 0.85);
+  spindle.position.set(0, TOP + 1.05, 0);
   platter.add(spindle);
 
   /* the crystal: a hexagonal bipyramid — waist, point, and a point below */
@@ -280,7 +293,7 @@
     new THREE.MeshBasicMaterial({ color: 0xd8ff7a }));
   core.position.y = 0.9;
   gem.add(waist); gem.add(point); gem.add(tail); gem.add(core);
-  gem.position.set(0, TOP + 1.05, 0.85);
+  gem.position.set(0, TOP + 1.05, 0);
   gem.children.forEach(function (c) { c.castShadow = true; });
   platter.add(gem);
 
@@ -350,16 +363,25 @@
   }
 
   /* ---------------- the platter turns while something is playing ----------------
-     A record should move, but only when there is sound. This asks the page's own
-     player whether anything is playing — the hidden audio element for a recording,
-     or the live synthesiser for the instrumental — and spins only then. Reduced
-     motion opts out entirely. */
+     A record should move, but only when there is sound.
+
+     "Is anything playing" has to be asked fresh every time, and it has to ask the
+     right party. The players on this site are built with `new Audio()`, which is
+     NOT attached to the document, and they are built by scripts that run after this
+     one — so `document.querySelector("audio")` at load time returns null and stays
+     null. That is why a recording played with the platter standing perfectly still.
+
+     The reliable signal is the page's own state: the records page marks the row it
+     is playing with .is-playing, and that is true for a recording and for the live
+     synthesiser alike. The audio-element and synthesiser checks stay as fallbacks
+     for other pages. Reduced motion opts out entirely. */
   var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  var audio = document.querySelector("audio");
   var spinning = false, last = 0;
 
   function anythingPlaying() {
-    if (audio && !audio.paused && !audio.ended && audio.currentTime > 0) return true;
+    if (document.querySelector(".ms-track.is-playing")) return true;
+    var a = document.querySelector("audio");                 // ask now, never cache
+    if (a && !a.paused && !a.ended && a.currentTime > 0) return true;
     if (window.ATTMusic && typeof window.ATTMusic.isOn === "function" && window.ATTMusic.isOn()) return true;
     return false;
   }
@@ -380,6 +402,9 @@
       if (want === spinning) return;
       spinning = want;
       last = 0;
+      /* 状态也写到 DOM 上：一是 CSS 能跟着做（比如给盘边加一点亮度），
+         二是自检可以直接断言"放着的时候真的在转"，不必去读 WebGL 的像素。 */
+      host.classList.toggle("is-spinning", spinning);
       if (spinning) requestAnimationFrame(tick);
     }, 350);
   }

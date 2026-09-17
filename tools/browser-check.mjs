@@ -408,6 +408,46 @@ const SUITE = `(async () => {
     /* selectTrack 会把不认识的 id 悄悄退回 lofi —— 所以这条断言是有意义的：
        忘了把新曲目加进白名单时，这里会红。 */
     ok("引擎认得水线主题", music.selectTrack("waterline") === "waterline", music.currentTrack().name);
+
+    /* ---------- 唱片页：盘要转，歌词要跟着走 ----------
+       两条都断言"跑出来的事实"，不是读代码推断。
+
+       盘转没转，不看像素（场景是 WebGL，画完缓冲区就丢了），看场景自己在 host 上
+       打的 is-spinning。这个类现在也是断言的抓手：录放时它曾经**永远是 false**，
+       因为播放器是用 new Audio() 建的、元素不在 DOM 里，而场景脚本在加载时用
+       document.querySelector("audio") 找过它一次，拿到 null 就再没问过第二次。
+       （注意：这段字符串本身是模板字面量，注释里不能出现反引号。）
+
+       歌词走没走，让录音跳到末尾，看面板的 scrollTop 有没有真的动。以前只在活跃行
+       快贴到边时才滚，列表能连着八九行纹丝不动 —— 高亮在动，页面看着像没动。 */
+    const sceneHost = document.querySelector("[data-record-scene]");
+    const firstFile = rows.find(r => r.getAttribute("data-kind") === "file");
+    if (sceneHost && firstFile) {
+      firstFile.click();
+      await until(() => sceneHost.classList.contains("is-spinning"), 5000, 150);
+      ok("放录音时唱片真的在转", sceneHost.classList.contains("is-spinning"),
+         "is-spinning=" + sceneHost.classList.contains("is-spinning") + " · " + firstFile.querySelector(".ms-name").textContent);
+
+      const lyricHost = document.querySelector("[data-lyrics]");
+      const lineCount = document.querySelectorAll("[data-lyrics] .lyric-line").length;
+      const a3 = document.querySelector("audio");
+      if (lyricHost && lineCount && a3) {
+        await until(() => a3.duration > 0, 6000, 150);
+        ok("歌词面板可滚动", lyricHost.scrollHeight > lyricHost.clientHeight,
+           lyricHost.scrollHeight + " / " + lyricHost.clientHeight);
+        a3.currentTime = a3.duration * 0.92;
+        await until(() => lyricHost.scrollTop > 0, 5000, 150);
+        ok("歌词跟着歌走（跳到末尾后面板滚下去）", lyricHost.scrollTop > 0,
+           "scrollTop=" + Math.round(lyricHost.scrollTop) + " · 活跃行「" +
+           (document.querySelector("[data-lyrics] .lyric-line.is-active")?.textContent || "").trim().slice(0, 16) + "」");
+      }
+
+      firstFile.click();                       // stop it again
+      await until(() => !sceneHost.classList.contains("is-spinning"), 4000, 150);
+      ok("停下之后盘也停", !sceneHost.classList.contains("is-spinning"),
+         "is-spinning=" + sceneHost.classList.contains("is-spinning"));
+    }
+
     if (window.ATTMusic && ATTMusic.isOn()) ATTMusic.stop();
   } else if (document.querySelector('audio[src*="rap.mp3"]')) {
     ok("旧版说唱页（已退役为跳转）", true, "legacy page");
