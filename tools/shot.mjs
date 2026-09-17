@@ -94,7 +94,10 @@ async function run() {
   await cdp.send("Page.enable");
   await cdp.send("Runtime.enable");
   await cdp.send("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: 1, mobile: width < 700 });
-  await cdp.send("Page.navigate", { url: pathToFileURL(join(rootDir, page)).href });
+  /* 既收本地文件名，也收 http(s):// 地址 —— 推送之后要抓线上复验，
+     那条规矩（DESIGN-SKILL §四.5）没有截图工具配合就做不成。 */
+  const navUrl = /^https?:\/\//i.test(page) ? page : pathToFileURL(join(rootDir, page)).href;
+  await cdp.send("Page.navigate", { url: navUrl });
   await sleep(2600);
 
   /* 入口板会挡住整屏，主题也要在截图前定死。 */
