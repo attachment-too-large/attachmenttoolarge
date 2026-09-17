@@ -66,19 +66,39 @@
     return figure.classList.contains("is-ready") || figure.classList.contains("is-missing");
   }
 
+  /* 三张图都挂在 release 附件里（不入库：那是别人的美术）。
+     取不到就退回同名的本地路径 —— 本地带着文件跑的时候不该依赖网络；
+     两条路都断了才认输。
+     顺序很要紧：**先试本地、再判缺席**。若第一次失败就把卡钉成 is-missing，
+     后面换上本地路径也救不回来 —— 那个类是终态，.ch-art 会被 display:none。
+     注意 wireArt 必须声明在这一层：函数声明在块里是块级作用域，
+     放进下面的 if 里，后面那个 forEach 就取不到了。 */
+  function wireArt(img, onReady, onGiveUp) {
+    var triedLocal = false;
+    img.addEventListener("load", function () {
+      if (img.naturalWidth > 0 && onReady) onReady();
+    });
+    img.addEventListener("error", function () {
+      var local = img.getAttribute("data-ch-local");
+      if (!triedLocal && local && img.getAttribute("src") !== local) {
+        triedLocal = true;
+        img.setAttribute("src", local);
+        return;
+      }
+      if (onGiveUp) onGiveUp();
+    });
+  }
+
   if (artFull) {
-    if (artFull.complete && artFull.naturalWidth > 0) {
-      markReady();
-    } else {
-      artFull.addEventListener("load", markReady, { once: true });
-      artFull.addEventListener("error", markMissing, { once: true });
-      /* 兜底：解码卡住时 load／error 都不来，骨架屏会一直转。
-         到点自己判一次，按真实结果收敛。 */
-      window.setTimeout(function () {
-        if (settled()) return;
-        if (artFull.naturalWidth > 0) markReady(); else markMissing();
-      }, 5000);
-    }
+    wireArt(artFull, markReady, markMissing);
+    /* 命中的缓存不会再触发 load，所以手动判一次 */
+    if (artFull.complete && artFull.naturalWidth > 0) markReady();
+    /* 兜底：远程与本地都迟迟不给结果时，别让骨架屏一直转。
+       给足 9 秒 —— 要留出「远程失败、再试本地」这一轮的时间。 */
+    window.setTimeout(function () {
+      if (settled()) return;
+      if (artFull.naturalWidth > 0) markReady(); else markMissing();
+    }, 9000);
   }
 
   /* 某一版缺席时只禁用那一个按钮：一张图没有，不该把整张卡判死。
@@ -86,10 +106,10 @@
   figure.querySelectorAll("[data-ch-art]").forEach(function (img) {
     var which = img.getAttribute("data-ch-art");
     if (which === "full") return;                       // 主图由上面的 is-ready / is-missing 负责
-    img.addEventListener("error", function () {
+    wireArt(img, null, function () {
       var btn = document.querySelector('[data-ch-variant="' + which + '"]');
-      if (btn) { btn.disabled = true; btn.setAttribute("title", which + " 未随仓库分发"); }
-    }, { once: true });
+      if (btn) { btn.disabled = true; btn.setAttribute("title", which + " 取不到（release 与本地都没有）"); }
+    });
   });
 
   /* 重放一次入场动画：先摘掉类、强制回流、再加回去。 */

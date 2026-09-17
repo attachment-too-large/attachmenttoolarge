@@ -285,8 +285,9 @@
   </section>
 
   <!-- ============ GUEST TRANSMISSION ============ -->
-  <!-- 缪尔赛思（明日方舟）。作者个人喜欢的角色，与本站虚构设定无关；
-       官方立绘不随仓库分发（见 .gitignore），缺席时走 .ch-fallback 降级。 -->
+  <!-- 缪尔赛思（明日方舟）。作者个人喜欢的角色，与本站虚构设定无关。
+       官方图不入库（.gitignore），改挂在 GitHub Release 的 character-art-v1 附件上，
+       页面引用绝对地址；本地跑则回退到 assets/img/ 下的同名文件。见 docs/CHARACTER-ART.md。 -->
   <section class="section">
     <div class="container">
       <div class="section-head reveal" data-num="01">
@@ -305,18 +306,27 @@
                   aria-expanded="false" aria-controls="ch-greeting">
             <span class="ch-skeleton" aria-hidden="true"><i></i><i></i><i></i></span>
             <span class="ch-art-wrap" aria-hidden="true">
-              <img class="ch-art ch-art-full" data-ch-art="full" src="assets/img/muelsyse.png" alt=""
+              <!-- 官方图不入库（那是鹰角的美术），挂在 release 附件 character-art-v1 上，
+                   这里引用绝对地址。取不到时 character.js 会退回 data-ch-local 指的本地同名文件，
+                   两条路都断了才走 .ch-fallback。见 docs/CHARACTER-ART.md。 -->
+              <img class="ch-art ch-art-full" data-ch-art="full" alt=""
+                   data-ch-local="assets/img/muelsyse.png"
+                   src="https://github.com/attachment-too-large/attachmenttoolarge/releases/download/character-art-v1/muelsyse.png"
                    width="2048" height="2048" decoding="async">
-              <img class="ch-art ch-art-bust" data-ch-art="bust" src="assets/img/muelsyse-bust.png" alt=""
+              <img class="ch-art ch-art-bust" data-ch-art="bust" alt=""
+                   data-ch-local="assets/img/muelsyse-bust.png"
+                   src="https://github.com/attachment-too-large/attachmenttoolarge/releases/download/character-art-v1/muelsyse-bust.png"
                    width="180" height="360" decoding="async">
-              <img class="ch-art ch-art-chibi" data-ch-art="chibi" src="assets/img/muelsyse-chibi.png" alt=""
+              <img class="ch-art ch-art-chibi" data-ch-art="chibi" alt=""
+                   data-ch-local="assets/img/muelsyse-chibi.png"
+                   src="https://github.com/attachment-too-large/attachmenttoolarge/releases/download/character-art-v1/muelsyse-chibi.png"
                    width="720" height="960" decoding="async">
               <i class="ch-curtain c1"></i><i class="ch-curtain c2"></i>
               <i class="ch-curtain c3"></i><i class="ch-curtain c4"></i>
             </span>
             <span class="ch-fallback">
-              <b>立绘未随仓库分发</b>
-              <span>把官方图放到 assets/img/muelsyse.png（全身）· muelsyse-bust.png（半身）· muelsyse-chibi.png（Q版）即可 · the art itself is never committed</span>
+              <b>立绘取不到</b>
+              <span>三张图挂在 release 附件 character-art-v1 上；本地跑就放到 assets/img/muelsyse.png · -bust.png · -chibi.png · the art itself is never committed</span>
             </span>
             <span class="ch-hint" data-ch-hint>点一下打招呼 · Click to say hello</span>
           </button>
