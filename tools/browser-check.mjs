@@ -409,6 +409,20 @@ const SUITE = `(async () => {
        忘了把新曲目加进白名单时，这里会红。 */
     ok("引擎认得水线主题", music.selectTrack("waterline") === "waterline", music.currentTrack().name);
 
+    /* ---------- 缪尔赛思的第二首：Quickwater ----------
+       同一只角色的另一面。两首都是五声音阶、都没有鼓，所以"灵动"不能靠形容词，
+       只能落在两个能测的数上：起音更密、频谱重心更高。 */
+    /* 48 秒：前 8 小节只有琶音，低音与旋律分别在 8、16 小节才进来，
+       只渲 24 秒量到的其实只是引子，响度会低估一大截。 */
+    const qw = await music.renderOffline(48, "quickwater");
+    ok("灵动版有波形", qw.peak > 0.02 && qw.rms > 0.004, "peak=" + qw.peak + " rms=" + qw.rms);
+    ok("灵动版不削顶", qw.peak < 0.95, "peak=" + qw.peak);
+    ok("灵动版不刺耳（高频占比低）", qw.hf < 0.10,
+       "hf=" + qw.hf + " · centroid " + qw.centroidHz + "Hz · low/mid/high " + qw.lowShare + "/" + qw.midShare + "/" + qw.highShare);
+    ok("灵动版确实比水线版更密更亮", qw.onsetsPerSecond > wl.onsetsPerSecond && qw.centroidHz > wl.centroidHz,
+       "起音 " + wl.onsetsPerSecond + "/s → " + qw.onsetsPerSecond + "/s · 重心 " + wl.centroidHz + "Hz → " + qw.centroidHz + "Hz");
+    ok("引擎认得灵动版", music.selectTrack("quickwater") === "quickwater", music.currentTrack().name);
+
     /* ---------- 唱片页：盘要转，歌词要跟着走 ----------
        两条都断言"跑出来的事实"，不是读代码推断。
 
@@ -754,20 +768,25 @@ const SUITE = `(async () => {
     ok("页面注明了角色来源", /鹰角|Hypergryph/i.test(document.body.innerText),
        "版权与「作者喜欢的角色」声明在位");
 
-    /* 她的主题曲：断言真的出声、真的是那一首、而且能停下。
-       「按钮存在」不算数 —— 引擎没加载时按钮会被禁用，那时这条会走跳过分支。 */
-    const chPlay = document.querySelector("[data-ch-play]");
-    if (chPlay && !chPlay.disabled) {
-      chPlay.click();
-      await until(() => window.ATTMusic && window.ATTMusic.isOn(), 4000, 120);
-      const nowOn = window.ATTMusic.isOn();
-      ok("卡上能放她的主题曲", nowOn && window.ATTMusic.currentTrack().id === "waterline",
-         nowOn ? window.ATTMusic.currentTrack().name : "点了没出声");
-      chPlay.click();
-      await until(() => !window.ATTMusic.isOn(), 4000, 120);
-      ok("再点能停下", window.ATTMusic.isOn() === false, "playing=" + window.ATTMusic.isOn());
+    /* 她的两首曲子：断言每一首都真的出声、真的是那一首、而且能停下。
+       「按钮存在」不算数 —— 引擎没加载时按钮会被禁用，那时走跳过分支。 */
+    const chPlays = [...document.querySelectorAll("[data-ch-play]")];
+    if (chPlays.length && !chPlays[0].disabled) {
+      const played = [], missed = [];
+      for (const b of chPlays) {
+        const id = b.getAttribute("data-ch-play");
+        b.click();
+        await until(() => window.ATTMusic && window.ATTMusic.isOn() && window.ATTMusic.currentTrack().id === id, 5000, 120);
+        const hit = window.ATTMusic.isOn() && window.ATTMusic.currentTrack().id === id;
+        if (hit) played.push(window.ATTMusic.currentTrack().name); else missed.push(id);
+        b.click();
+        await until(() => !window.ATTMusic.isOn(), 5000, 120);
+      }
+      ok("卡上两首曲子都放得出来", missed.length === 0 && played.length === chPlays.length,
+         missed.length ? "没过：" + missed.join(", ") : played.join(" · "));
+      ok("放完能停下", window.ATTMusic.isOn() === false, "playing=" + window.ATTMusic.isOn());
     } else {
-      ok("卡上没有主题曲按钮（跳过）", true, "跳过");
+      ok("卡上没有曲子按钮（跳过）", true, "跳过");
     }
   } else {
     ok("本页无角色立绘卡", true, "跳过");

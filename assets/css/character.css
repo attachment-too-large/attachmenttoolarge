@@ -211,12 +211,13 @@ html[data-theme="light"] {
   letter-spacing: 0.09em; line-height: 1.7;
 }
 
-/* ---------- 她的主题曲 ---------- */
-/* 透明底那颗按钮压在 .po-board 的印张上，审计会一路走到那块不透明的板；
-   播放中的那颗自带柠檬绿底与近黑字，成对声明。 */
+/* ---------- 她的两首曲子 ---------- */
+/* 一首安静、一首灵动，并排放。谁在放由 .is-on 标出来，
+   字色与底色都成对写在 .ch-play 里。 */
+.ch-tunes { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
 .ch-play {
   display: inline-flex; align-items: center; gap: 8px;
-  margin-top: 18px; padding: 9px 16px; cursor: pointer;
+  padding: 9px 16px; cursor: pointer;
   font-family: var(--rhodes-mono); font-size: 0.66rem;
   letter-spacing: 0.16em; text-transform: uppercase;
   background-color: transparent !important;

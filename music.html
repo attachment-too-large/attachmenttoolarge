@@ -288,6 +288,12 @@
           <span class="ms-time">loop</span>
           <span class="ms-sub">instrumental · D major pentatonic, 76 BPM · no drum at all — plucked water, a slow pad, one arching melody · written for Muelsyse</span>
         </li>
+        <li class="ms-track" data-track="quickwater" data-kind="synth">
+          <span class="ms-num">08</span>
+          <span class="ms-name">Quickwater</span>
+          <span class="ms-time">loop</span>
+          <span class="ms-sub">instrumental · E major pentatonic, 112 BPM · sixteenth-note runs, pizzicato bass, a melody that leaps instead of arching · the same elf, moving</span>
+        </li>
         <li class="ms-track" data-track="folk-vocal" data-kind="file" data-src="assets/audio/folk.mp3" data-seconds="170">
           <span class="ms-num">06</span>
           <span class="ms-name">The Twenty-Megabyte Line</span>
@@ -356,7 +362,7 @@
 <script src="assets/js/record-scene.js?v=20260917b"></script>
 <script src="assets/js/lyrics.js"></script>
 <script src="assets/js/recordings.js"></script>
-<script src="assets/js/music.js"></script>
+<script src="assets/js/music.js?v=20260917d"></script>
 <script src="assets/js/main.js"></script>
 <script src="assets/js/tactical.js"></script>
 <script>
@@ -492,14 +498,16 @@
         /* neither synthesised track has words; describe what it is instead */
         var isScore = id === "postrock";
         var isWater = id === "waterline";
+        var isQuick = id === "quickwater";
         if (titleEl) titleEl.textContent = "No words";
-        if (leadEl) leadEl.textContent = (isScore || isWater)
+        if (leadEl) leadEl.textContent = (isScore || isWater || isQuick)
           ? "A score, not a song: nothing is being sung here either — only instruments, written in-house and played live by the browser."
           : "The first track is instrumental: there is nothing being sung, so there is nothing to print here.";
         var songs = (window.ATTRECORDINGS || []).length + 1;
         host.innerHTML = '<div class="callout"><div><b>' +
           (isScore ? "The Long Send — in-house post-rock"
                    : isWater ? "Through the Water Line — in-house instrumental"
+                   : isQuick ? "Quickwater — in-house instrumental"
                    : "Failed at 19:59 — instrumental") + "</b>" +
           (isScore
             ? "E minor at 92 BPM, eight bars that build in four layers: a clean delayed arpeggio and a pad alone, " +
@@ -511,6 +519,12 @@
               "kind: a plucked arpeggio in eighth notes that moves like shallow water, a pad that takes two bars " +
               "to breathe, and one five-note melody that arches for eight bars and settles back on the tonic. " +
               "Written for Muelsyse — a character the author likes — and synthesised note by note while you listen."
+            : isQuick
+            ? "The same elf, moving. E major pentatonic at 112 BPM, 32 bars, E–C#m–A–B changing every two bars, and " +
+              "still no drum of any kind — the sixteenth-note arpeggio is the pulse. The bass plays short notes on " +
+              "one and three like a plucked string rather than a bed, a bell lands on a weak beat nearly every bar, " +
+              "and the melody leaps by seconds and thirds instead of arching. Measured against its quieter sibling: " +
+              "spectral centre 548 Hz against 280, onsets 6.2 a second against none."
             : "Built note by note in the browser as it plays: a pad, a walking bass and an arpeggio over " +
               "Am–F–C–G. No percussion, no hiss, no audio file, made to loop forever.") +
           " " + songs + " tracks above carry words; pick one and they will appear here.</div></div>";

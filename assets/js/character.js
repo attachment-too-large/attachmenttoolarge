@@ -168,36 +168,36 @@
     });
   });
 
-  /* ---------- 她的主题曲：Through the Water Line ----------
-     播放/停止交给站内的音乐引擎（music.js），这里只做开关与状态显示。
-     引擎不在（没加载 music.js）时按钮直接禁用，不留一个按下去没反应的控件。 */
-  var playBtn = document.querySelector("[data-ch-play]");
-  if (playBtn) {
+  /* ---------- 她的两首曲子 ----------
+     一首是安静的《Through the Water Line》，一首是灵动的《Quickwater》。
+     两个按钮各自管一首：点没在放的那首就换过去，点正在放的这首就停。
+     播放交给站内的音乐引擎（music.js），这里只管开关与状态。
+     引擎不在（没加载 music.js）时两个按钮一起禁用，不留按下去没反应的控件。 */
+  var playBtns = [].slice.call(document.querySelectorAll("[data-ch-play]"));
+  if (playBtns.length) {
     if (!window.ATTMusic || typeof window.ATTMusic.selectTrack !== "function") {
-      playBtn.disabled = true;
+      playBtns.forEach(function (b) { b.disabled = true; });
     } else {
-      var syncPlay = function (on) {
-        playBtn.classList.toggle("is-on", !!on);
-        playBtn.setAttribute("aria-pressed", on ? "true" : "false");
-        playBtn.textContent = on ? "■ 停止 · Stop her theme" : "♪ 她的主题曲 · Through the Water Line";
+      var syncPlay = function () {
+        playBtns.forEach(function (b) {
+          var mine = window.ATTMusic.isOn() && window.ATTMusic.currentTrack().id === b.getAttribute("data-ch-play");
+          b.classList.toggle("is-on", mine);
+          b.setAttribute("aria-pressed", mine ? "true" : "false");
+          b.textContent = (mine ? "■ 停止 · " : "♪ ") + (b.getAttribute("data-ch-name") || "");
+        });
       };
-      playBtn.addEventListener("click", function () {
-        var music = window.ATTMusic;
-        if (music.isOn() && music.currentTrack().id === "waterline") {
-          music.stop();
-          syncPlay(false);
-        } else {
-          music.selectTrack("waterline");
-          music.start();
-          syncPlay(true);
-        }
+      playBtns.forEach(function (b) {
+        b.addEventListener("click", function () {
+          var music = window.ATTMusic;
+          var id = b.getAttribute("data-ch-play");
+          if (music.isOn() && music.currentTrack().id === id) music.stop();
+          else { music.selectTrack(id); music.start(); }
+          syncPlay();
+        });
       });
-      /* 别的地方把音乐停了（播放器胶囊、紧急静音）→ 按钮也要跟着复位 */
-      document.addEventListener("click", function () {
-        window.setTimeout(function () {
-          syncPlay(window.ATTMusic.isOn() && window.ATTMusic.currentTrack().id === "waterline");
-        }, 0);
-      });
+      /* 别处把音乐停了（播放器胶囊、紧急静音）→ 按钮也要跟着复位 */
+      document.addEventListener("click", function () { window.setTimeout(syncPlay, 0); });
+      syncPlay();
     }
   }
 

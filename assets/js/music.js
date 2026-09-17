@@ -815,6 +815,99 @@
     if (bar === WL_BARS - 1 && local === 6) swell(ctx, b, t);
   }
 
+  /* ======================= 曲目：Quickwater =======================
+     同一只缪尔赛思的第二面。Through the Water Line 写的是她安静的那半 ——
+     水漫过玻璃、两小节才呼吸一次的垫、一条八小节才拱起来的旋律。
+     这一首写她动的那半：她还是水，但水也可以是哗哗往前跑的那种。
+
+     做法上是把前者整个翻过来：
+       · 速度 76 → 112 BPM，步子从八分音符细到十六分音符
+       · 音区整体上移，琶音走 E–G#–B–E–G#（E 大调五声），一粒一粒弹出来
+       · 旋律故意**跳**：二三度上下蹦，落音不拖，和前一首的长句正好相反
+       · 低音改成短音，只在每小节的一、三拍点一下 —— 像拨弦，不像铺底
+       · 铃只当水花，落在弱拍上
+     一样没有鼓：她动起来是水在跳，不是有人在打拍子。
+
+     E 大调五声（E F# G# B C#），E–C#m–A–B 每两小节一次，32 小节 ≈ 68 秒。
+     五声里没有四度，压在这四个和弦上都不会打架，所以快也不会脏。 */
+  var QW_BPM = 112, QW_BEAT = 60 / QW_BPM, QW_STEP = QW_BEAT / 4, QW_BAR = 16;
+  var QW_BARS = 32;
+  var QW_CHORDS = [
+    { bass: 82.41,   /* E2  */
+      arp: [329.63, 415.30, 493.88, 659.25, 830.61, 659.25, 493.88, 415.30,
+            329.63, 415.30, 493.88, 659.25, 830.61, 659.25, 493.88, 415.30] },
+    { bass: 69.30,   /* C#2 */
+      arp: [277.18, 329.63, 415.30, 554.37, 659.25, 554.37, 415.30, 329.63,
+            277.18, 329.63, 415.30, 554.37, 659.25, 554.37, 415.30, 329.63] },
+    { bass: 110.00,  /* A2  */
+      arp: [220.00, 329.63, 440.00, 554.37, 659.25, 554.37, 440.00, 329.63,
+            220.00, 329.63, 440.00, 554.37, 659.25, 554.37, 440.00, 329.63] },
+    { bass: 123.47,  /* B2  */
+      arp: [246.94, 369.99, 493.88, 622.25, 739.99, 622.25, 493.88, 369.99,
+            246.94, 369.99, 493.88, 622.25, 739.99, 622.25, 493.88, 369.99] }
+  ];
+  /* E 大调五声：E F# G# B C# E F# G# B C#，两个八度够她蹦了 */
+  var QW_PENTA = [329.63, 369.99, 415.30, 493.88, 554.37, 659.25, 739.99, 830.61, 987.77, 1108.73];
+  /* 十六小节旋律，每小节十六格（十六分音符），-1 是留白。
+     全曲的脾气就在这些跳进和空拍上：不铺长音，蹦一下就走。 */
+  var QW_MELODY = [
+    [5, -1, 7, 5, -1, 4, -1, -1, 5, -1, 7, -1, 8, -1, -1, -1],
+    [7, -1, -1, 5, -1, 7, -1, 5, 4, -1, -1, -1, -1, -1, -1, -1],
+    [4, -1, 5, 4, -1, 3, -1, -1, 4, -1, 5, -1, 7, -1, -1, -1],
+    [5, -1, -1, -1, 4, -1, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [7, -1, 8, 7, -1, 5, -1, -1, 7, -1, 8, -1, 9, -1, -1, -1],
+    [8, -1, -1, 7, -1, 5, -1, 7, 5, -1, -1, -1, -1, -1, -1, -1],
+    [5, -1, 7, 5, -1, 4, -1, -1, 3, -1, 4, -1, 5, -1, -1, -1],
+    [4, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [9, -1, 8, 9, -1, 7, -1, -1, 8, -1, 7, -1, 5, -1, -1, -1],
+    [7, -1, -1, 8, -1, 9, -1, 8, 7, -1, -1, -1, -1, -1, -1, -1],
+    [7, -1, 8, 7, -1, 5, -1, -1, 7, -1, 8, -1, 9, -1, -1, -1],
+    [8, -1, -1, -1, 7, -1, 5, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [5, -1, 7, 5, -1, 8, -1, -1, 7, -1, 5, -1, 4, -1, -1, -1],
+    [5, -1, -1, 7, -1, 8, -1, 9, 8, -1, -1, -1, -1, -1, -1, -1],
+    [8, -1, 7, 8, -1, 5, -1, -1, 4, -1, 5, -1, 7, -1, -1, -1],
+    [5, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]
+  ];
+  var QW_SPLASH = [1318.51, 1108.73, 987.77, 830.61];   /* E6 C#6 B5 G#5：水花 */
+
+  function scheduleQuickwaterStep(ctx, b, step, t) {
+    var bar = Math.floor(step / QW_BAR) % QW_BARS;
+    var local = step % QW_BAR;
+    var chord = QW_CHORDS[Math.floor(bar / 2) % QW_CHORDS.length];
+    /* 四层：0 只有水在跑，1 加低音，2 加旋律，3 收尾把步子放慢 */
+    var section = bar < 8 ? 0 : bar < 16 ? 1 : bar < 24 ? 2 : 3;
+
+    /* 水：一拍四粒的琶音。它是这条曲子的主体，所以音量给到能听清的份上；
+       强拍重一点、其余轻一点，跑起来才有弹性而不是缝纫机。
+       收尾段只留八分音符，把速度感交回去。
+       （音量是按实测调的：第一版 vel 1.05 渲出来峰值只有 0.09，
+       比水线版的 0.25 小了快三倍，听着就是"薄"。） */
+    if (section === 3) {
+      if (local % 2 === 0) arp(ctx, b, chord.arp[local], t, 3.10);
+    } else {
+      arp(ctx, b, chord.arp[local], t, local % 4 === 0 ? 5.00 : 3.10);
+    }
+
+    /* 低音：短音，一、三拍各一下 —— 拨弦，不是铺底 */
+    if (section >= 1 && (local === 0 || local === 8)) {
+      bass(ctx, b, chord.bass, t, QW_BEAT * 0.55, 0.42);
+    }
+
+    /* 她：跳着走的旋律，只在中后段出现 */
+    if (section >= 2) {
+      var deg = QW_MELODY[bar % 16][local];
+      if (deg >= 0) lead(ctx, b, QW_PENTA[deg], t, QW_STEP * 3.6);
+    }
+
+    /* 水花：几乎每小节一颗铃，落在弱拍上，位置一上一下地换。
+       铃的尾巴有 1.6 秒，正好把断奏之间那些空隙填住 ——
+       既补了响度，又是往上补的，不会把重心拉低。 */
+    if (section >= 1 && local === (bar % 2 === 0 ? 6 : 13)) {
+      bell(ctx, b, QW_SPLASH[(bar >> 1) % QW_SPLASH.length], t);
+    }
+    if (bar === QW_BARS - 1 && local === 12) swell(ctx, b, t);
+  }
+
   function schedulePostStep(ctx, b, step, t) {
     var bar = Math.floor(step / POST_BAR) % POST_BARS;
     var local = step % POST_BAR;
@@ -1122,6 +1215,7 @@
     if (state.track === "musicbox") return MB_STEP;
     if (state.track === "figure") return FG_STEP;
     if (state.track === "waterline") return WL_STEP;
+    if (state.track === "quickwater") return QW_STEP;
     if (state.track === "electro") return ELEC_STEP;
     return STEP;
   }
@@ -1132,6 +1226,7 @@
     else if (state.track === "musicbox") scheduleMusicBoxStep(ctx, b, step, t);
     else if (state.track === "figure") scheduleFigureStep(ctx, b, step, t);
     else if (state.track === "waterline") scheduleWaterlineStep(ctx, b, step, t);
+    else if (state.track === "quickwater") scheduleQuickwaterStep(ctx, b, step, t);
     else if (state.track === "electro") scheduleElectroStep(ctx, b, step, t);
     else scheduleLofiStep(ctx, b, step, t);
   }
@@ -1448,7 +1543,7 @@
   }
 
   function selectTrack(id) {
-    if (id !== "rap" && id !== "postrock" && id !== "electro" && id !== "musicbox" && id !== "figure" && id !== "waterline") id = "lofi";
+    if (id !== "rap" && id !== "postrock" && id !== "electro" && id !== "musicbox" && id !== "figure" && id !== "waterline" && id !== "quickwater") id = "lofi";
     if (id === state.track) return state.track;
     var wasOn = state.on;
     if (wasOn) stop();
@@ -1475,6 +1570,7 @@
         ? ((data && data.title) || "Attachment Too Large") + " (Rap)"
         : state.track === "figure" ? "Someone at the Gate"
         : state.track === "waterline" ? "Through the Water Line"
+        : state.track === "quickwater" ? "Quickwater"
         : state.track === "musicbox" ? "A Music Box for U-114"
         : state.track === "postrock" ? "The Long Send"
         : state.track === "electro" ? "Rejected (Club Edit)"
@@ -1597,6 +1693,7 @@
     var dur = which === "rap" ? RAP_STEP : which === "postrock" ? POST_STEP
             : which === "musicbox" ? MB_STEP : which === "figure" ? FG_STEP
             : which === "waterline" ? WL_STEP
+            : which === "quickwater" ? QW_STEP
             : which === "electro" ? ELEC_STEP : STEP;
     var steps = Math.ceil(seconds / dur);
     for (var i = 0; i < steps; i++) {
@@ -1604,6 +1701,7 @@
       else if (which === "musicbox") scheduleMusicBoxStep(ctx, buses, i, i * dur);
       else if (which === "figure") scheduleFigureStep(ctx, buses, i, i * dur);
       else if (which === "waterline") scheduleWaterlineStep(ctx, buses, i, i * dur);
+      else if (which === "quickwater") scheduleQuickwaterStep(ctx, buses, i, i * dur);
       else if (which === "postrock") schedulePostStep(ctx, buses, i, i * dur);
       else if (which === "electro") scheduleElectroStep(ctx, buses, i, i * dur);
       else scheduleLofiStep(ctx, buses, i % TOTAL_STEPS, i * dur);
