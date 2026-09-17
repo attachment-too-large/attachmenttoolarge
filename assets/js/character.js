@@ -28,32 +28,37 @@
   var enEl = panel && panel.querySelector("[data-ch-line-en]");
   var artFull = figure.querySelector('[data-ch-art="full"]');
 
-  /* 缪尔赛思：莱茵生命的生态学家，「水」做的精灵，习惯管人叫博士。
-     下面是同人性质的问候，不是官方台词。 */
+  /* 以下全部是**官方语音记录里的原话**（中/英文本取自 PRTS 的「缪尔赛思/语音记录」），
+     不是我自己编的。第一版是我写的同人台词，里面有一句「反正我本来就不是人」——
+     那句是错的：她是精灵，是萨米来的一个种族，不是「非人」；她自己也从不这么说。
+     宁可去查原话，也不要替角色发明她的立场。 */
   var LINES = {
+    /* 全身立绘：日常、关心、记得过去 */
     full: [
-      { zh: "博士，又在盯着一封 24.7 MB 的邮件发呆？",
-        en: "Doctor — staring at a 24.7 MB mail again?" },
-      { zh: "塞不下就别硬塞了，我从水管里帮你绕过去。反正我本来就不是人。",
-        en: "If it won't fit, stop forcing it. I'll route it through the water — I'm not human anyway." },
-      { zh: "20 MB 的墓碑……挺好看的。要不要我给你浇点水？",
-        en: "A headstone for 20 MB. It's rather handsome. Shall I water it for you?" }
+      { zh: "在你开始工作前，我们聊会天吧。",
+        en: "Hiya! How about a little chat before you get to work?" },
+      { zh: "嘴唇是不是有些干？……好像还有些脱皮了，平常一定要多喝水啊。",
+        en: "Are your lips kind of dry there...? Yeah, they look a little chapped. You need more water on the regular." },
+      { zh: "你还记得罗德岛刚刚成立的时候吗，博士？记不得？没事的，时间一长，你总会想起来。",
+        en: "Do you still remember when Rhodes Island was new on its feet? No? That's fine, you'll remember with enough time." }
     ],
+    /* 半身像：凑近、触碰、递东西给你 */
     bust: [
-      { zh: "凑这么近干嘛？我又不会从屏幕里泼你一身水。",
-        en: "Why so close? I'm not going to splash you through the screen." },
-      { zh: "半身像也是我。只是构图更近，别当成另一个人。",
-        en: "The bust is still me — just a closer crop. Don't count me twice." },
-      { zh: "看够了就点回去，全身那版还站得好好的。",
-        en: "When you're done, switch back. The full-length one is still standing." }
+      { zh: "我的润唇膏给你吧，之后买一支还给我就行。我只用这个牌子的，薄荷味，可别买错了，好吗？",
+        en: "You can have my chapstick, and then we're even again once you buy me a new stick. This is the only brand I use, and it's gotta be peppermint flavor. Don't get the wrong one. Okay?" },
+      { zh: "呼，至少还有你能触碰我。",
+        en: "At least I can still feel your touch." },
+      { zh: "如果还有事情在困扰着你，就先把它丢到一旁吧，来尝尝这个“橙味风暴”。",
+        en: "If anything's bothering you, put it to one side for now. Here, try this out, 'Orange Storm'." }
     ],
+    /* Q版小人：她上了战场、也过生日的那一面 */
     chibi: [
-      { zh: "小一号也是我。图纸还是要看的，20 MB 那条线得有人守着。",
-        en: "Smaller is still me. The blueprint still needs reading — someone has to watch that 20 MB line." },
-      { zh: "别捏。我这是战斗小人，不是挂件。",
-        en: "Don't poke. I'm a battle sprite, not a keychain." },
-      { zh: "莱茵生命生态科，缪尔赛思。要签名的话……等我先把这页看完。",
-        en: "Ecology, Rhine Lab — Muelsyse. If you want an autograph, let me finish this page first." }
+      { zh: "好好装修一下，一定能变得很舒适。",
+        en: "Let's really decorate this place. It'll be cozy in no time, promise." },
+      { zh: "幻象引开他们了，我们走这边吧。",
+        en: "I got my mirages to lead them off. We'll go this way." },
+      { zh: "嗯？嗯……没什么，只是在想刚刚诞生的你大概会是什么模样。",
+        en: "Hm? Mm... nothing, I'm just imagining what you might've been like when you were born." }
     ]
   };
 
@@ -66,25 +71,21 @@
     return figure.classList.contains("is-ready") || figure.classList.contains("is-missing");
   }
 
-  /* 三张图都挂在 release 附件里（不入库：那是别人的美术）。
-     取不到就退回同名的本地路径 —— 本地带着文件跑的时候不该依赖网络；
-     两条路都断了才认输。
-     顺序很要紧：**先试本地、再判缺席**。若第一次失败就把卡钉成 is-missing，
-     后面换上本地路径也救不回来 —— 那个类是终态，.ch-art 会被 display:none。
-     注意 wireArt 必须声明在这一层：函数声明在块里是块级作用域，
-     放进下面的 if 里，后面那个 forEach 就取不到了。 */
+  /* 三张图不入库（那是鹰角的美术），按顺序试三个地址：
+       1. Gitee 的 release 附件 —— 国内直连，而且返回的是正确的 image/png
+       2. GitHub 的 release 附件 —— 国外网络更顺，但会跳 objects CDN
+       3. 本地 assets/img/ 下的同名文件 —— 带着文件跑的时候不该依赖网络
+     前两个是彼此的备份：一台 CDN 不通，图还在。
+     顺序很要紧：**先试完所有地址、再判缺席**。is-missing 是终态，
+     提前打上去，后面换地址也救不回来 —— .ch-art 会被 display:none。 */
   function wireArt(img, onReady, onGiveUp) {
-    var triedLocal = false;
+    var queue = (img.getAttribute("data-ch-alt") || "").split(/\s+/).filter(Boolean);
+    var next = 0;
     img.addEventListener("load", function () {
       if (img.naturalWidth > 0 && onReady) onReady();
     });
     img.addEventListener("error", function () {
-      var local = img.getAttribute("data-ch-local");
-      if (!triedLocal && local && img.getAttribute("src") !== local) {
-        triedLocal = true;
-        img.setAttribute("src", local);
-        return;
-      }
+      if (next < queue.length) { img.setAttribute("src", queue[next++]); return; }
       if (onGiveUp) onGiveUp();
     });
   }

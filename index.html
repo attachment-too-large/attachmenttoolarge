@@ -306,27 +306,27 @@
                   aria-expanded="false" aria-controls="ch-greeting">
             <span class="ch-skeleton" aria-hidden="true"><i></i><i></i><i></i></span>
             <span class="ch-art-wrap" aria-hidden="true">
-              <!-- 官方图不入库（那是鹰角的美术），挂在 release 附件 character-art-v1 上，
-                   这里引用绝对地址。取不到时 character.js 会退回 data-ch-local 指的本地同名文件，
-                   两条路都断了才走 .ch-fallback。见 docs/CHARACTER-ART.md。 -->
+              <!-- 官方图不入库（那是鹰角的美术）。src 是 Gitee 的 release 附件，
+                   data-ch-alt 是按顺序的备选地址：GitHub 的同名附件，然后是本地文件。
+                   见 docs/CHARACTER-ART.md。character.js 依序回退，全都失败才走 .ch-fallback。 -->
               <img class="ch-art ch-art-full" data-ch-art="full" alt=""
-                   data-ch-local="assets/img/muelsyse.png"
-                   src="https://github.com/attachment-too-large/attachmenttoolarge/releases/download/character-art-v1/muelsyse.png"
+                   data-ch-alt="https://github.com/attachment-too-large/attachmenttoolarge/releases/download/character-art-v1/muelsyse.png assets/img/muelsyse.png"
+                   src="https://gitee.com/machinekyansauto3-operator/attachmenttoolarge-assets/releases/download/character-art-v1/muelsyse.png"
                    width="2048" height="2048" decoding="async">
               <img class="ch-art ch-art-bust" data-ch-art="bust" alt=""
-                   data-ch-local="assets/img/muelsyse-bust.png"
-                   src="https://github.com/attachment-too-large/attachmenttoolarge/releases/download/character-art-v1/muelsyse-bust.png"
+                   data-ch-alt="https://github.com/attachment-too-large/attachmenttoolarge/releases/download/character-art-v1/muelsyse-bust.png assets/img/muelsyse-bust.png"
+                   src="https://gitee.com/machinekyansauto3-operator/attachmenttoolarge-assets/releases/download/character-art-v1/muelsyse-bust.png"
                    width="180" height="360" decoding="async">
               <img class="ch-art ch-art-chibi" data-ch-art="chibi" alt=""
-                   data-ch-local="assets/img/muelsyse-chibi.png"
-                   src="https://github.com/attachment-too-large/attachmenttoolarge/releases/download/character-art-v1/muelsyse-chibi.png"
+                   data-ch-alt="https://github.com/attachment-too-large/attachmenttoolarge/releases/download/character-art-v1/muelsyse-chibi.png assets/img/muelsyse-chibi.png"
+                   src="https://gitee.com/machinekyansauto3-operator/attachmenttoolarge-assets/releases/download/character-art-v1/muelsyse-chibi.png"
                    width="720" height="960" decoding="async">
               <i class="ch-curtain c1"></i><i class="ch-curtain c2"></i>
               <i class="ch-curtain c3"></i><i class="ch-curtain c4"></i>
             </span>
             <span class="ch-fallback">
               <b>立绘取不到</b>
-              <span>三张图挂在 release 附件 character-art-v1 上；本地跑就放到 assets/img/muelsyse.png · -bust.png · -chibi.png · the art itself is never committed</span>
+              <span>三张图挂在 release 附件 character-art-v1 上（Gitee 与 GitHub 各一份）；本地跑就放到 assets/img/muelsyse.png · -bust.png · -chibi.png · the art itself is never committed</span>
             </span>
             <span class="ch-hint" data-ch-hint>点一下打招呼 · Click to say hello</span>
           </button>
@@ -334,10 +334,11 @@
 
         <div class="ch-dialogue" id="ch-greeting" data-ch-greeting aria-live="polite">
           <span class="po-tag">Incoming · 通讯接入</span>
-          <p class="ch-line" data-ch-line>博士，又在盯着一封 24.7 MB 的邮件发呆？</p>
-          <p class="ch-line-en" data-ch-line-en>Doctor — staring at a 24.7 MB mail again?</p>
+          <p class="ch-line" data-ch-line>在你开始工作前，我们聊会天吧。</p>
+          <p class="ch-line-en" data-ch-line-en>Hiya! How about a little chat before you get to work?</p>
           <p class="ch-note">
             缪尔赛思（Muelsyse）出自《明日方舟》，著作权归鹰角网络／蒙塔山所有，此处以非盈利方式引用，仅作致敬。
+            <b>这里说的每一句都是她在游戏里的官方语音原话</b>（中英文本取自官方语音记录），不是同人台词；
             她只是作者个人喜欢的角色，与本站的虚构设定无关，也与微软无关。立绘不随仓库分发。
           </p>
           <button class="ch-play" type="button" data-ch-play aria-pressed="false">♪ 她的主题曲 · Through the Water Line</button>

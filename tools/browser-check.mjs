@@ -689,8 +689,11 @@ const SUITE = `(async () => {
        所以这里按「每一版都真的解码出来了」逐一验，而不是只验第一版。 */
     const chSwitch = [...document.querySelectorAll(".ch-switch-btn")];
     const chArts = [...chFig.querySelectorAll("[data-ch-art]")];
+    /* 明细里带上真正服务这张图的主机名：三张图走的是"Gitee → GitHub → 本地"
+       这条回退链，不写出来就看不出到底哪一跳生效了。 */
+    const chHost = (i) => { try { return new URL(i.currentSrc || i.src).host.split(".").slice(-2).join("."); } catch (e) { return "?"; } };
     ok("立绘的每一版都解码出来了", chArts.length >= 2 && chArts.every(i => i.complete && i.naturalWidth > 0),
-       chArts.map(i => i.getAttribute("data-ch-art") + " " + i.naturalWidth + "x" + i.naturalHeight).join(" · "));
+       chArts.map(i => i.getAttribute("data-ch-art") + " " + i.naturalWidth + "x" + i.naturalHeight + " ← " + chHost(i)).join(" · "));
 
     if (chSwitch.length >= 2) {
       const variantNow = () => chFig.getAttribute("data-ch-variant");

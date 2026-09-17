@@ -18,20 +18,51 @@ and is not affiliated with the rights holders.
 git history keeps the repository to the site's own work; the images are still published, as
 release assets, so the deployed page can show them.
 
-**How the page refers to them.** `index.html` points each `<img>` at the release asset's absolute
-URL. If that fetch fails, `assets/js/character.js` retries the equivalent path under
-`assets/img/` (useful when working locally with the files present) and, if that fails too, the
-card shows its "not distributed" fallback rather than a broken image.
+**How the page refers to them.** Each `<img>` carries the Gitee URL as its `src` and the rest of
+the chain in `data-ch-alt`:
+
+1. **Gitee** — `machinekyansauto3-operator/attachmenttoolarge-assets`, release `character-art-v1`.
+   Served as `image/png` with no referer check, and reachable from inside China.
+2. **GitHub** — `attachment-too-large/attachmenttoolarge`, same tag. Fine from outside China, but
+   the download redirects to the objects CDN, which is often unreachable from inside it.
+3. **Local** — `assets/img/<name>.png`, for working on the site with the files present.
+
+`assets/js/character.js` walks that list on each `error` and only shows the "not distributed"
+fallback once every candidate has failed. The order matters and is written into the file:
+`is-missing` is a terminal class, so marking the card missing after the *first* failure would make
+every later candidate useless.
+
+The audit prints which host actually served each image, so a silent fallback cannot hide.
+
+**The words on the card are her own.** Every greeting is a line from her official voice record —
+the Chinese and English text is taken from the in-game voice files as transcribed on PRTS
+(*缪尔赛思/语音记录*). The first version of this card used lines written for the occasion, one of
+which had her say she "isn't human anyway"; that is simply wrong about her — she is an elf, a
+people from Sami, and she never says anything of the kind about herself. Quoting her beats
+inventing her.
 
 ## Republishing
 
 ```sh
+# GitHub
 node tools/publish-asset.mjs assets/img/muelsyse.png       --tag character-art-v1 --title "Muelsyse character art" --notes docs/CHARACTER-ART.md
 node tools/publish-asset.mjs assets/img/muelsyse-bust.png  --tag character-art-v1 --title "Muelsyse character art" --notes docs/CHARACTER-ART.md
 node tools/publish-asset.mjs assets/img/muelsyse-chibi.png --tag character-art-v1 --title "Muelsyse character art" --notes docs/CHARACTER-ART.md
 ```
 
 The tag is `character-art-v1`, not `v*`, so the CLI release workflow is not triggered.
+
+Gitee has no equivalent of `publish-asset.mjs`; it takes a multipart `attach_files` call against
+the release id:
+
+```sh
+curl -X POST -H "Authorization: token $GITEE_TOKEN" \
+  -F "file=@assets/img/muelsyse.png" \
+  https://gitee.com/api/v5/repos/machinekyansauto3-operator/attachmenttoolarge-assets/releases/<release_id>/attach_files
+```
+
+The mirror is insurance, not decoration: when the GitHub object CDN is unreachable the page still
+shows her. If only one host is ever needed, drop the other from `data-ch-alt`.
 
 ## Where the chibi came from
 
