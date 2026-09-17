@@ -423,6 +423,19 @@ const SUITE = `(async () => {
        "起音 " + wl.onsetsPerSecond + "/s → " + qw.onsetsPerSecond + "/s · 重心 " + wl.centroidHz + "Hz → " + qw.centroidHz + "Hz");
     ok("引擎认得灵动版", music.selectTrack("quickwater") === "quickwater", music.currentTrack().name);
 
+    /* 点曲目表里的合成器行也要真的放起来。卡上的按钮走的是同一条引擎，
+       但行点击是另一条路径（play() → selectTrack + start），得单独验。 */
+    const qwRow = rows.filter(r => r.getAttribute("data-track") === "quickwater")[0];
+    if (qwRow) {
+      qwRow.click();
+      await until(() => window.ATTMusic && ATTMusic.isOn() && ATTMusic.currentTrack().id === "quickwater", 6000, 150);
+      const qwOn = window.ATTMusic && ATTMusic.isOn() && ATTMusic.currentTrack().id === "quickwater";
+      ok("点曲目表的灵动版能放起来", qwOn, qwOn ? ATTMusic.currentTrack().name : "点了没放起来");
+      qwRow.click();
+      await until(() => !window.ATTMusic.isOn(), 5000, 150);
+      ok("灵动版停下后不残留", !window.ATTMusic.isOn(), "playing=" + window.ATTMusic.isOn());
+    }
+
     /* ---------- 唱片页：盘要转，歌词要跟着走 ----------
        两条都断言"跑出来的事实"，不是读代码推断。
 
